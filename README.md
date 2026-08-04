@@ -1,90 +1,53 @@
 # SARMAAN LGA Coordinator Dashboard
 
-Live dashboard for the Kano AMR project — auto-refreshes every hour from KoboToolbox.
+Live dashboard for the Kano AMR project — auto-refreshes hourly from KoboToolbox. React/Vite frontend, deployed to GitHub Pages.
 
 ## How it works
 
-1. A **GitHub Action** runs every hour, fetches all submissions from KoboToolbox using your API token (stored as a secret), and writes `public/data.json`
-2. **GitHub Pages** serves `public/index.html`, which reads `data.json` and renders the dashboard
-3. No server needed — fully static, completely free
+1. **`fetch-data.yml`** (GitHub Action, hourly) pulls all submissions from KoboToolbox using the `KOBO_TOKEN` secret and commits the result to `data.json` at the repo root.
+2. **`deploy.yml`** (GitHub Action, on push to `main` / hourly at :10 / manual) installs deps, copies the latest `data.json` into `public/`, runs `npm run build`, and deploys `dist/` to GitHub Pages.
+   - It's on its own hourly schedule (not just `push`) because commits made with the default `GITHUB_TOKEN` — which is what `fetch-data.yml` pushes with — don't trigger other workflows' `push` events. Without the schedule, the fetch would keep updating `data.json` in the repo but the deployed site would never pick it up.
+3. The deployed app fetches its own `data.json` at runtime (`src/hooks/useData.js`) and re-polls every 10 minutes client-side, so an open browser tab picks up a new deploy without a manual reload.
 
----
+## Local development
 
-## Setup (one-time, ~10 minutes)
-
-### Step 1 — Create the GitHub repo
-
-1. Go to [github.com](https://github.com) and click **New repository**
-2. Name it `sarmaan-dashboard` (or anything you like)
-3. Set it to **Public** (required for free GitHub Pages)
-4. Click **Create repository**
-
-### Step 2 — Upload these files
-
-Upload all files from this folder into the repo, keeping the folder structure:
-```
-.github/
-  workflows/
-    fetch-data.yml
-fetch_data.py
-public/
-  index.html
-  data.json
-README.md
+```bash
+npm install
+npm run dev
 ```
 
-The easiest way: on the repo page, click **Add file → Upload files**, drag everything in.
+Vite serves at `http://localhost:5173/sarmaan-lc-dashboard/` (the `base` in `vite.config.js` matches the GitHub Pages path). `public/data.json` is a local snapshot for dev — copy a fresh one from the repo root's `data.json` if you want current numbers locally; it isn't committed after the first copy (see `.gitignore`... actually it *is* tracked, since Vite needs something in `public/` to serve — just don't worry about keeping it perfectly fresh locally, the deployed build always re-copies from root `data.json`).
 
-### Step 3 — Add your KoboToolbox API token as a secret
+## Setup on a fresh repo (already done for this one)
 
-1. In your repo, go to **Settings → Secrets and variables → Actions**
-2. Click **New repository secret**
-3. Name: `KOBO_TOKEN`
-4. Value: paste your KoboToolbox API token
-5. Click **Add secret**
-
-Your token is now stored securely — it never appears in any file.
-
-### Step 4 — Enable GitHub Pages
-
-1. In your repo, go to **Settings → Pages**
-2. Under **Source**, select **Deploy from a branch**
-3. Branch: `main`, Folder: `/public`
-4. Click **Save**
-
-After a minute, GitHub will show you a URL like:
-`https://YOUR-USERNAME.github.io/sarmaan-dashboard/`
-
-### Step 5 — Run the Action for the first time
-
-1. Go to **Actions** tab in your repo
-2. Click **Fetch KoboToolbox Data** in the left sidebar
-3. Click **Run workflow → Run workflow**
-
-This fetches the data immediately. After it completes, open your GitHub Pages URL — the dashboard will be live.
-
----
-
-## Ongoing use
-
-- The GitHub Action runs **automatically every hour** — no manual steps needed
-- Share the GitHub Pages URL with the project manager; they can bookmark it
-- The dashboard shows the timestamp of the last data fetch in the header
-- To trigger an immediate refresh: go to Actions → Fetch KoboToolbox Data → Run workflow
+1. Repo → **Settings → Secrets and variables → Actions** → add `KOBO_TOKEN` (your KoboToolbox API token).
+2. Repo → **Settings → Pages → Source** → **GitHub Actions** (not "Deploy from a branch" — the React build needs `deploy.yml` to run).
+3. Push to `main`. `deploy.yml` builds and publishes automatically; `fetch-data.yml` keeps `data.json` current.
 
 ## Changing the refresh frequency
 
-Edit `.github/workflows/fetch-data.yml` and change the cron line:
-- Every hour: `0 * * * *`
-- Every 30 min: `*/30 * * * *`
-- Twice daily: `0 8,20 * * *`
-- Daily at 9am UTC: `0 9 * * *`
+- Data fetch: edit the `cron` in `.github/workflows/fetch-data.yml` (currently `0 * * * *`, hourly).
+- Site rebuild: edit the `cron` in `.github/workflows/deploy.yml` (currently `10 * * * *`, ten minutes after the fetch, to give it time to land).
 
 ## Troubleshooting
 
 | Problem | Fix |
 |---|---|
-| Dashboard shows "Data fetch failed" | The Action hasn't run yet — go to Actions and run it manually |
-| Action fails with 401 error | Your API token is wrong or expired — update the `KOBO_TOKEN` secret |
-| Action fails with 404 error | The asset UID in `fetch_data.py` may have changed — update `ASSET_UID` |
-| No new data appearing | Check the Actions tab for errors; KoboToolbox may be rate-limiting |
+| Dashboard shows stale data | Check the **Actions** tab — both `Fetch KoboToolbox Data` and `Build and Deploy React App` should show recent green runs. Run either manually via `workflow_dispatch` if needed. |
+| `fetch-data.yml` fails with 401 | The `KOBO_TOKEN` secret is wrong or expired. |
+| `fetch-data.yml` fails with 404 | The KoboToolbox asset UID changed — update `ASSET_UID` in `fetch_data.py`. |
+| `deploy.yml` fails to build | Run `npm run build` locally first to reproduce the error. |
+| Blank page on GitHub Pages | Confirm Pages **Source** is set to **GitHub Actions**, not a branch — a branch-based source serves raw repo files, not the Vite build output. |
+
+## Project structure
+
+```
+index.html              # Vite entry point
+src/                     # React app (pages, components, hooks, utils)
+public/data.json         # dev-time data snapshot; overwritten at build time from root data.json
+data.json                # live data, refreshed hourly by fetch-data.yml
+fetch_data.py            # KoboToolbox → data.json
+.github/workflows/
+  fetch-data.yml          # hourly data fetch
+  deploy.yml               # build + deploy to GitHub Pages
+```
