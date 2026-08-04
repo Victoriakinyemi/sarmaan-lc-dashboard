@@ -16,7 +16,12 @@ npm install
 npm run dev
 ```
 
-Vite serves at `http://localhost:5173/sarmaan-lc-dashboard/` (the `base` in `vite.config.js` matches the GitHub Pages path). `public/data.json` is a local snapshot for dev — copy a fresh one from the repo root's `data.json` if you want current numbers locally; it isn't committed after the first copy (see `.gitignore`... actually it *is* tracked, since Vite needs something in `public/` to serve — just don't worry about keeping it perfectly fresh locally, the deployed build always re-copies from root `data.json`).
+Vite serves at `http://localhost:5173/sarmaan-lc-dashboard/` (the `base` in `vite.config.js` matches the GitHub Pages path). `public/data.json` is a local-only snapshot for dev — Vite needs *something* there to serve, but it's gitignored so it never gets committed (avoids tracking the same data twice, since root `data.json` is the real source). If you want current numbers locally:
+
+```bash
+cp data.json public/data.json   # macOS/Linux
+copy data.json public\data.json # Windows
+```
 
 ## Setup on a fresh repo (already done for this one)
 

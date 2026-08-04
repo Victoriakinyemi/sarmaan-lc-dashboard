@@ -33,8 +33,8 @@ export default function KPICard({ label, desc, value, suffix = '', color = 'blue
 
   return (
     <div
-      className="card card-hover relative overflow-hidden animate-fade-up"
-      style={{ animationDelay: `${delay}ms`, padding: '16px' }}
+      className="card card-hover relative overflow-hidden animate-fade-up flex flex-col"
+      style={{ animationDelay: `${delay}ms`, padding: '16px', height: '100%' }}
     >
       {/* Accent bar */}
       <div className="kpi-accent-bar" style={{ background: theme.bar }} />
@@ -53,7 +53,7 @@ export default function KPICard({ label, desc, value, suffix = '', color = 'blue
         <p className="text-xs mb-3 leading-snug" style={{ color: '#9ca3af' }}>{desc}</p>
       )}
 
-      <div className="flex items-baseline gap-1">
+      <div className="flex items-baseline gap-1 mt-auto">
         <span className="font-bold tabular-nums" style={{ fontSize: 26, lineHeight: 1, color: theme.text }}>
           {typeof value === 'number' ? animated.toLocaleString() : value}
         </span>

@@ -1,13 +1,13 @@
 import { useState } from 'react'
-import { X, FileText, FileDown, Loader2 } from 'lucide-react'
-import { generateWordReport, generatePDFReport } from '../utils/reportUtils'
+import { X, Presentation, Loader2 } from 'lucide-react'
+import { generatePPTXReport } from '../utils/reportUtils'
 
 export default function ReportModal({ raw, data, onClose }) {
   const [lga,       setLga]       = useState('all')
   const [start,     setStart]     = useState('')
   const [end,       setEnd]       = useState('')
-  const [loading,   setLoading]   = useState(null) // 'word' | 'pdf'
-  const [done,      setDone]      = useState(null)
+  const [loading,   setLoading]   = useState(false)
+  const [done,      setDone]      = useState(false)
 
   const lgas = [...new Set(raw.map(r => r.lga))].sort()
 
@@ -17,18 +17,16 @@ export default function ReportModal({ raw, data, onClose }) {
     return true
   })
 
-  const download = async (type) => {
-    setLoading(type)
-    setDone(null)
+  const download = async () => {
+    setLoading(true)
+    setDone(false)
     try {
-      const opts = { lga, data: filteredData, raw, dateRange: { start, end } }
-      if (type === 'word') await generateWordReport(opts)
-      else await generatePDFReport({ ...opts, elementId: 'report-preview' })
-      setDone(type)
+      await generatePPTXReport({ lga, data: filteredData, raw, dateRange: { start, end } })
+      setDone(true)
     } catch (e) {
       console.error(e)
     } finally {
-      setLoading(null)
+      setLoading(false)
     }
   }
 
@@ -39,7 +37,7 @@ export default function ReportModal({ raw, data, onClose }) {
         <div className="flex items-center justify-between px-6 py-4 border-b border-surface-border">
           <div>
             <h2 className="text-sm font-bold text-ink">Download Report</h2>
-            <p className="text-xs text-ink-muted mt-0.5">Generate a PDF or Word report for one LGA or the full state</p>
+            <p className="text-xs text-ink-muted mt-0.5">Generate a PowerPoint report for one LGA or the full state</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-surface-muted transition-colors">
             <X size={16} className="text-ink-muted" />
@@ -73,7 +71,7 @@ export default function ReportModal({ raw, data, onClose }) {
 
           {/* Info */}
           <div className="bg-brand-50 rounded-xl p-3 text-xs text-brand-700 border border-brand-200">
-            <strong>What's included:</strong> State overview, top/bottom 5 LGAs, {lga !== 'all' ? `${lga} performance rank, detailed metrics,` : 'all LGA metrics,'} issues log with descriptions, and an auto-generated narrative summary.
+            <strong>What's included:</strong> A condensed executive slide deck — state snapshot, top/bottom 5 LGAs, {lga !== 'all' ? `${lga} performance rank, coverage & team metrics,` : 'state-wide data-quality flags,'} key issues, and auto-generated recommendations.
           </div>
 
           {/* Preview data summary */}
@@ -89,27 +87,19 @@ export default function ReportModal({ raw, data, onClose }) {
             Cancel
           </button>
           <button
-            onClick={() => download('word')}
-            disabled={!!loading}
-            className="btn-secondary text-sm px-4 py-2 flex items-center gap-2"
-          >
-            {loading === 'word' ? <Loader2 size={13} className="animate-spin" /> : <FileText size={13} />}
-            Word (.docx)
-          </button>
-          <button
-            onClick={() => download('pdf')}
-            disabled={!!loading}
+            onClick={download}
+            disabled={loading}
             className="btn-primary text-sm px-4 py-2 flex items-center gap-2"
           >
-            {loading === 'pdf' ? <Loader2 size={13} className="animate-spin" /> : <FileDown size={13} />}
-            PDF
+            {loading ? <Loader2 size={13} className="animate-spin" /> : <Presentation size={13} />}
+            PowerPoint (.pptx)
           </button>
         </div>
 
         {done && (
           <div className="px-6 pb-4">
             <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-xs text-green-700">
-              ✓ {done === 'word' ? 'Word document' : 'PDF'} downloaded successfully.
+              ✓ PowerPoint downloaded successfully.
             </div>
           </div>
         )}
