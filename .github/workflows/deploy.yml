@@ -36,7 +36,9 @@ jobs:
         run: npm ci
 
       - name: Copy latest data.json into public
-        run: cp data.json public/data.json
+        run: |
+          mkdir -p public
+          cp data.json public/data.json
 
       - name: Build
         run: npm run build
