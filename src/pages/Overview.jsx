@@ -13,14 +13,12 @@ import FilterBar     from '../components/FilterBar'
 import ReportModal   from '../components/ReportModal'
 import { applyFilters, buildLGAStats, buildTimeSeries, computeKPIs } from '../utils/dataUtils'
 
-const CONTEXT = 'May 13-17: coordinators at centralized AMR training (Mumbayya House, Dala LGA). Field deployment began May 18. May 21-22: break for data and sample review. Data collection continued May 23-24. May 25 - Jun 2: National break. Data collection resumed June 3.'
-
 const DEFAULT_FILTERS = {
   dates: null, status: 'all', lga: 'all', coord: 'all',
   activity: 'all', dateRange: { start: '', end: '' }
 }
 
-export default function Overview({ raw }) {
+export default function Overview({ raw, activeState, lgaCount }) {
   const [filters,    setFilters]    = useState(DEFAULT_FILTERS)
   const [showReport, setShowReport] = useState(false)
 
@@ -34,16 +32,18 @@ export default function Overview({ raw }) {
   return (
     <div style={{ padding: '16px 20px', overflowX: 'hidden', width: '100%' }}>
 
-      {/* Context banner */}
-      <div style={{
-        background: 'linear-gradient(135deg, #f0fdf4, #ecfdf5)',
-        border: '1px solid #a7f3d0',
-        borderRadius: 10, padding: '9px 14px',
-        fontSize: 12, color: '#065f46', marginBottom: 14,
-        lineHeight: 1.5,
-      }}>
-        <strong>Context:</strong> {CONTEXT}
-      </div>
+      {/* Context banner - only rendered if this state has one configured */}
+      {activeState.contextNote && (
+        <div style={{
+          background: 'linear-gradient(135deg, #f0fdf4, #ecfdf5)',
+          border: '1px solid #a7f3d0',
+          borderRadius: 10, padding: '9px 14px',
+          fontSize: 12, color: '#065f46', marginBottom: 14,
+          lineHeight: 1.5,
+        }}>
+          <strong>Context:</strong> {activeState.contextNote}
+        </div>
+      )}
 
       {/* Filters + Download Report */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 4, width: '100%' }}>
@@ -142,7 +142,7 @@ export default function Overview({ raw }) {
         </div>
       </div>
 
-      {showReport && <ReportModal raw={raw} data={data} onClose={() => setShowReport(false)} />}
+      {showReport && <ReportModal raw={raw} data={data} activeState={activeState} lgaCount={lgaCount} onClose={() => setShowReport(false)} />}
     </div>
   )
 }

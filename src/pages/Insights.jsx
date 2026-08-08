@@ -8,8 +8,6 @@ const DEFAULT_FILTERS = {
   activity: 'all', dateRange: { start: '', end: '' }
 }
 
-const CONTEXT = 'May 13-17: coordinators at centralized AMR training (Mumbayya House, Dala LGA). Field deployment began May 18. May 21-22: break for data and sample review. Data collection continued May 23-24. May 25 - Jun 2: National break. Data collection resumed June 3.'
-
 function HighlightCard({ title, desc, items, color = 'border-brand-300', emptyMsg }) {
   if (!items.length && !emptyMsg) return null
   return (
@@ -234,11 +232,11 @@ function LGANarrativeCard({ stat, stateKPIs, rank, totalLGAs }) {
   )
 }
 
-export default function Insights({ raw }) {
+export default function Insights({ raw, activeState, lgaCount }) {
   const [filters, setFilters] = useState(DEFAULT_FILTERS)
 
   const data     = useMemo(() => applyFilters(raw, filters), [raw, filters])
-  const allStats = useMemo(() => buildLGAStats(raw), [raw])  // always full 44
+  const allStats = useMemo(() => buildLGAStats(raw), [raw])  // always the full state, unfiltered
   const filtered = useMemo(() => buildLGAStats(data), [data])
 
   const yesterday = getYesterday()
@@ -260,7 +258,7 @@ export default function Insights({ raw }) {
   const filterList = (list) => lv === 'all' ? list : list.filter(s => s.lga === lv)
   const emptyMsg   = lv !== 'all' ? `${lv} is not in this ranking.` : ''
 
-  // Per-LGA cards: seed all 44 from RAW, then overlay filtered stats
+  // Per-LGA cards: seed every LGA from RAW, then overlay filtered stats
   const lgaCardStats = useMemo(() => {
     const base = {}
     allStats.forEach(s => { base[s.lga] = { ...s, n: 0, inside: 0, wards: 0, sett: 0, hh: 0, dcs: 0, dcs_partial: 0, dcs_absent: 0, forms: 0, ch: 0, critical: 0, device: 0, security: 0, days: new Set(), challenges: [], criticals: [], devices: [], securities: [] } })
@@ -273,17 +271,19 @@ export default function Insights({ raw }) {
 
   return (
     <div className="p-5 max-w-[1600px] mx-auto">
-      {/* Context */}
-      <div className="bg-brand-50 border border-brand-200 rounded-xl px-4 py-2.5 text-xs text-brand-700 mb-4 leading-relaxed">
-        <strong>Context:</strong> {CONTEXT}
-      </div>
+      {/* Context - only rendered if this state has one configured */}
+      {activeState.contextNote && (
+        <div className="bg-brand-50 border border-brand-200 rounded-xl px-4 py-2.5 text-xs text-brand-700 mb-4 leading-relaxed">
+          <strong>Context:</strong> {activeState.contextNote}
+        </div>
+      )}
 
       <FilterBar raw={raw} filters={filters} onChange={setFilters} />
 
       {/* Performance Highlights */}
       <div className="text-xs font-bold uppercase tracking-widest text-ink-muted mb-2 mt-2">⚡ Performance Highlights</div>
       <div className="bg-surface-muted border border-surface-border rounded-xl px-4 py-2.5 text-xs text-ink-secondary mb-4">
-        <strong>Note:</strong> Performance Highlights reflect the full dataset across all 44 LGAs and are not affected by filters. They represent the true picture of the entire data collection period.
+        <strong>Note:</strong> Performance Highlights reflect the full dataset across all {lgaCount} LGAs and are not affected by filters. They represent the true picture of the entire data collection period.
         {lv !== 'all' && <span className="ml-1 font-semibold text-brand-700"> When filtering to {lv}, only {lv} is shown in cards where it earned a ranked position.</span>}
       </div>
 
@@ -325,7 +325,7 @@ export default function Insights({ raw }) {
 
       {/* Per-LGA Cards */}
       <div className="text-xs font-bold uppercase tracking-widest text-ink-muted mb-3">
-        📍 Per-LGA Breakdown - {lv === 'all' ? 'All 44 LGAs' : lv + ' LGA'}
+        📍 Per-LGA Breakdown - {lv === 'all' ? `All ${lgaCount} LGAs` : lv + ' LGA'}
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
         {visibleCards.map(s => (

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { X, Presentation, Loader2 } from 'lucide-react'
 import { generatePPTXReport } from '../utils/reportUtils'
 
-export default function ReportModal({ raw, data, onClose }) {
+export default function ReportModal({ raw, data, activeState, lgaCount, onClose }) {
   const [lga,       setLga]       = useState('all')
   const [start,     setStart]     = useState('')
   const [end,       setEnd]       = useState('')
@@ -21,7 +21,7 @@ export default function ReportModal({ raw, data, onClose }) {
     setLoading(true)
     setDone(false)
     try {
-      await generatePPTXReport({ lga, data: filteredData, raw, dateRange: { start, end } })
+      await generatePPTXReport({ lga, data: filteredData, raw, dateRange: { start, end }, activeState, lgaCount })
       setDone(true)
     } catch (e) {
       console.error(e)
@@ -54,7 +54,7 @@ export default function ReportModal({ raw, data, onClose }) {
               onChange={e => setLga(e.target.value)}
               className="w-full filter-select py-2"
             >
-              <option value="all">Kano State — All 44 LGAs</option>
+              <option value="all">{activeState.name} — All {lgaCount} LGAs</option>
               {lgas.map(l => <option key={l} value={l}>{l} LGA</option>)}
             </select>
           </div>

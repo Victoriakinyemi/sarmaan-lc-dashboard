@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 
 const BASE = import.meta.env.BASE_URL
-const DATA_URL = `${BASE}data.json`
 
-export function useData() {
+export function useData(dataFile = 'data.json') {
   const [raw, setRaw]             = useState([])
   const [fetchedAt, setFetchedAt] = useState('')
   const [loading, setLoading]     = useState(true)
@@ -13,7 +12,7 @@ export function useData() {
   const load = useCallback(async () => {
     try {
       setLoading(true)
-      const res = await fetch(`${DATA_URL}?t=${Date.now()}`)
+      const res = await fetch(`${BASE}${dataFile}?t=${Date.now()}`)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const json = await res.json()
       setRaw(json.rows || [])
@@ -25,9 +24,10 @@ export function useData() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [dataFile])
 
   useEffect(() => {
+    setRaw([])
     load()
     const interval = setInterval(load, 10 * 60 * 1000)
     return () => clearInterval(interval)

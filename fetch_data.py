@@ -1,19 +1,30 @@
 """
-Fetches all submissions from KoboToolbox and writes data.json.
-Run by the GitHub Action using KOBO_TOKEN environment variable.
+Fetches all submissions from KoboToolbox for each configured state and
+writes one data-*.json file per state. Run by the GitHub Action using the
+KOBO_TOKEN environment variable.
+
+Each state is independent - if one asset fails to fetch or its rows don't
+clean into anything valid, that state's existing output file is left alone
+and the others still update. See STATES below to add another state.
 """
 
 import os, json, sys
 from datetime import datetime, timezone, timedelta
 from urllib.request import urlopen, Request
 
-ASSET_UID = "akucQN6di4hAxuVEZCku4Z"
 KOBO_BASE = "https://kf.kobotoolbox.org"
 TOKEN     = os.environ.get("KOBO_TOKEN", "")
 
 if not TOKEN:
     print("ERROR: KOBO_TOKEN environment variable not set.", file=sys.stderr)
     sys.exit(1)
+
+# slug is only used for logging; output_file is what actually matters -
+# it must match a state's `dataFile` in src/config/states.js.
+STATES = [
+    {"slug": "kano",   "asset_uid": "akucQN6di4hAxuVEZCku4Z", "output_file": "data.json"},
+    {"slug": "jigawa", "asset_uid": "a7qHTwCANtBbdKV4qD8pTa", "output_file": "data-jigawa.json"},
+]
 
 
 def kobo_get(url):
@@ -22,9 +33,9 @@ def kobo_get(url):
         return json.loads(r.read())
 
 
-def fetch_all_submissions():
+def fetch_all_submissions(asset_uid):
     results = []
-    url = f"{KOBO_BASE}/api/v2/assets/{ASSET_UID}/data/?format=json&limit=500"
+    url = f"{KOBO_BASE}/api/v2/assets/{asset_uid}/data/?format=json&limit=500"
     while url:
         data = kobo_get(url)
         results.extend(data.get("results", []))
@@ -158,21 +169,48 @@ def clean(row):
     }
 
 
-def main():
-    print(f"Fetching submissions for asset {ASSET_UID} ...")
-    raw = fetch_all_submissions()
-    print(f"  Got {len(raw)} raw submissions")
+def print_debug(raw):
+    """Diagnostic output to make field-mapping mismatches visible in the
+    Action log immediately, instead of needing another round-trip like the
+    original Kano field discovery did."""
+    if not raw:
+        return
+    first = raw[0]
+    keyword_keys = sorted(k for k in first.keys()
+                           if any(w in k.lower() for w in ("state", "lga", "ward", "auth", "result")))
+    print("  --- DEBUG: keys matching state/lga/ward/auth/result ---")
+    for k in keyword_keys:
+        print(f"    {k}: {first[k]!r}")
+    print("  --- END DEBUG ---")
+
+
+def process_state(cfg):
+    slug, asset_uid, output_file = cfg["slug"], cfg["asset_uid"], cfg["output_file"]
+    print(f"[{slug}] Fetching submissions for asset {asset_uid} ...")
+    try:
+        raw = fetch_all_submissions(asset_uid)
+    except Exception as e:
+        print(f"[{slug}] ERROR fetching: {e}", file=sys.stderr)
+        return
+    print(f"[{slug}]   Got {len(raw)} raw submissions")
+
+    print_debug(raw)
 
     cleaned = [clean(r) for r in raw]
     valid = [r for r in cleaned if r["date"] and r["lga"]]
     valid.sort(key=lambda r: (r["date"], r["lga"]))
-    print(f"  Valid rows: {len(valid)}")
+    print(f"[{slug}]   Valid rows: {len(valid)}")
 
-    print(f"  Challenges Yes:  {sum(1 for r in valid if r['challenges']=='Yes')}")
-    print(f"  Critical Yes:    {sum(1 for r in valid if r['critical']=='Yes')}")
-    print(f"  Device Yes:      {sum(1 for r in valid if r['device']=='Yes')}")
-    print(f"  Security Yes:    {sum(1 for r in valid if r['security']=='Yes')}")
-    print(f"  Device Yes+zero: {sum(1 for r in valid if r['device']=='Yes' and r['device_count']==0)}")
+    if raw and not valid:
+        print(f"[{slug}]   WARNING: 0 valid rows out of {len(raw)} raw - "
+              f"field mapping likely doesn't match this form. Check the DEBUG "
+              f"output above and compare against clean()'s field paths in "
+              f"fetch_data.py before assuming the fetch itself failed.")
+
+    print(f"[{slug}]   Challenges Yes:  {sum(1 for r in valid if r['challenges']=='Yes')}")
+    print(f"[{slug}]   Critical Yes:    {sum(1 for r in valid if r['critical']=='Yes')}")
+    print(f"[{slug}]   Device Yes:      {sum(1 for r in valid if r['device']=='Yes')}")
+    print(f"[{slug}]   Security Yes:    {sum(1 for r in valid if r['security']=='Yes')}")
 
     output = {
         "fetched_at": (datetime.now(timezone.utc) + timedelta(hours=1)).strftime("%Y-%m-%d %H:%M WAT"),
@@ -180,10 +218,15 @@ def main():
         "rows":       valid,
     }
 
-    with open("data.json", "w", encoding="utf-8") as f:
+    with open(output_file, "w", encoding="utf-8") as f:
         json.dump(output, f, ensure_ascii=False, separators=(",", ":"))
 
-    print(f"  Written {len(valid)} rows to data.json")
+    print(f"[{slug}]   Written {len(valid)} rows to {output_file}")
+
+
+def main():
+    for cfg in STATES:
+        process_state(cfg)
 
 
 if __name__ == "__main__":

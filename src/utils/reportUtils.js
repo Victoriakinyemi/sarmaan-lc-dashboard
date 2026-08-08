@@ -23,7 +23,7 @@ function truncate(s, n) {
 }
 
 // ─── POWERPOINT ─────────────────────────────────────────────────────────────
-export async function generatePPTXReport({ lga, data, raw, dateRange }) {
+export async function generatePPTXReport({ lga, data, raw, dateRange, activeState, lgaCount }) {
   const { default: PptxGenJS } = await import('pptxgenjs')
   const pptx = new PptxGenJS()
   pptx.layout = 'LAYOUT_16x9' // 10in x 5.63in
@@ -40,6 +40,10 @@ export async function generatePPTXReport({ lga, data, raw, dateRange }) {
   const GREEN = '155C3A'
   const FONT  = 'Arial'
 
+  const stateName  = activeState?.name || 'Kano State'
+  const programme  = activeState?.shortLabel ? `${activeState.shortLabel} Programme` : 'Kano AMR Programme'
+  const totalLGAs  = lgaCount ?? activeState?.totalLGAs ?? new Set(raw.map(r => r.lga)).size
+
   const lgaData   = lga === 'all' ? data : data.filter(r => r.lga === lga)
   const allStats  = buildLGAStats(raw)
   const lgaStats  = buildLGAStats(lgaData)
@@ -47,7 +51,7 @@ export async function generatePPTXReport({ lga, data, raw, dateRange }) {
   const lgaStat   = lgaStats.find(s => s.lga === lga) || null
   const allSorted = [...allStats].sort((a, b) => b.n - a.n)
   const period     = dateRange?.start ? `${dateRange.start} to ${dateRange.end}` : 'Full data collection period'
-  const scopeLabel = lga === 'all' ? 'Kano State — All 44 LGAs' : `${lga} LGA`
+  const scopeLabel = lga === 'all' ? `${stateName} — All ${totalLGAs} LGAs` : `${lga} LGA`
 
   const W = 10, H = 5.63
 
@@ -121,15 +125,15 @@ export async function generatePPTXReport({ lga, data, raw, dateRange }) {
   cover.addText('LGA Coordinator Field Activity Report', { x: 0, y: 2.15, w: W, h: 0.4, align: 'center', fontSize: 16, color: 'FFFFFF', fontFace: FONT })
   cover.addText(scopeLabel, { x: 0, y: 2.65, w: W, h: 0.4, align: 'center', fontSize: 14, bold: true, color: 'A7F3D0', fontFace: FONT })
   cover.addText(`Reporting period: ${period}`, { x: 0, y: 3.15, w: W, h: 0.3, align: 'center', fontSize: 10, color: '86C8A8', fontFace: FONT })
-  cover.addText(`Generated: ${formatDate()}  ·  Kano State, Nigeria  ·  Kano AMR Programme`, { x: 0, y: 3.45, w: W, h: 0.3, align: 'center', fontSize: 10, color: '86C8A8', fontFace: FONT })
+  cover.addText(`Generated: ${formatDate()}  ·  ${stateName}, Nigeria  ·  ${programme}`, { x: 0, y: 3.45, w: W, h: 0.3, align: 'center', fontSize: 10, color: '86C8A8', fontFace: FONT })
 
   if (lga === 'all' || !lgaStat) {
     // ── SLIDE 2 — STATE SNAPSHOT (state-wide report only) ──
-    const s2 = newSlide('Kano State Snapshot')
-    s2.addText(`Overall performance across all 44 LGA Coordinators · ${period}`, { x: 0.35, y: 0.72, w: W - 0.7, h: 0.3, fontSize: 10, color: GRAY, fontFace: FONT })
+    const s2 = newSlide(`${stateName} Snapshot`)
+    s2.addText(`Overall performance across all ${totalLGAs} LGA Coordinators · ${period}`, { x: 0.35, y: 0.72, w: W - 0.7, h: 0.3, fontSize: 10, color: GRAY, fontFace: FONT })
     tileGrid(s2, [
       { label: 'TOTAL REPORTS', value: stateKPIs.total.toLocaleString(), note: `across ${new Set(data.map(r => r.date)).size} days` },
-      { label: 'ACTIVE LGAs', value: `${stateKPIs.activeLGAs} / 44`, note: `${44 - stateKPIs.activeLGAs} with zero submissions`, color: stateKPIs.activeLGAs < 44 ? AMBER : GREEN },
+      { label: 'ACTIVE LGAs', value: `${stateKPIs.activeLGAs} / ${totalLGAs}`, note: `${totalLGAs - stateKPIs.activeLGAs} with zero submissions`, color: stateKPIs.activeLGAs < totalLGAs ? AMBER : GREEN },
       { label: 'INSIDE-LGA RATE', value: `${stateKPIs.insidePct}%`, note: `${stateKPIs.inside} of ${stateKPIs.total} reports` },
       { label: 'FORMS COMPLETED', value: stateKPIs.formsCompleted.toLocaleString(), note: '' },
       { label: 'WARDS COVERED', value: stateKPIs.wards.toLocaleString(), note: `avg ${avg(allStats, 'wards').toFixed(1)}/LGA` },
@@ -167,7 +171,7 @@ export async function generatePPTXReport({ lga, data, raw, dateRange }) {
       [0.7, 2.5, 1.8, 1.8, 2.4])
 
     // ── STATE-WIDE FLAGS & RECOMMENDATIONS ──
-    const zeroSub      = 44 - stateKPIs.activeLGAs
+    const zeroSub      = totalLGAs - stateKPIs.activeLGAs
     const activeOnly   = allStats.filter(s => s.n > 0)
     const lowInside    = activeOnly.filter(s => pct(s.inside, s.n) < 50).sort((a, b) => pct(a.inside, a.n) - pct(b.inside, b.n))
     const zeroCoverage = activeOnly.filter(s => s.hh === 0 && s.wards === 0)
@@ -182,7 +186,7 @@ export async function generatePPTXReport({ lga, data, raw, dateRange }) {
     bulletsSlide('State-wide Flags & Recommendations', flags,
       'Generated from the current dataset. Review alongside the dashboard for full LGA-level detail.')
 
-    pptx.writeFile({ fileName: `SARMAAN_Kano_State_Report_${new Date().toISOString().slice(0, 10)}.pptx` })
+    pptx.writeFile({ fileName: `SARMAAN_${stateName.replace(/\s+/g, '_')}_Report_${new Date().toISOString().slice(0, 10)}.pptx` })
     return
   }
 
@@ -226,8 +230,8 @@ export async function generatePPTXReport({ lga, data, raw, dateRange }) {
   const longestGap = gaps.length ? gaps.reduce((a, b) => (b.days > a.days ? b : a)) : null
 
   // ── SLIDE 6 — POSITION IN STATE ──
-  const s6 = newSlide(`${lga} LGA: Position in Kano State`)
-  s6.addText(`Rankings against all 44 LGA Coordinators. Uses full state dataset regardless of date filters.`, { x: 0.35, y: 0.72, w: W - 0.7, h: 0.3, fontSize: 10, color: GRAY, fontFace: FONT })
+  const s6 = newSlide(`${lga} LGA: Position in ${stateName}`)
+  s6.addText(`Rankings against all ${totalLGAs} LGA Coordinators. Uses full state dataset regardless of date filters.`, { x: 0.35, y: 0.72, w: W - 0.7, h: 0.3, fontSize: 10, color: GRAY, fontFace: FONT })
   tileGrid(s6, [
     { label: 'SUBMISSION RANK', value: rankLabel(lgaSubRank, allSorted.length), note: `${lgaStat.n} reports vs avg ${Math.round(avg(allStats, 'n'))}`, color: lgaSubRank <= 10 ? GREEN : lgaSubRank >= allSorted.length - 9 ? RED : BRAND },
     { label: 'HOUSEHOLD COVERAGE RANK', value: rankLabel(lgaHHRank, allStats.length), note: `${lgaStat.hh.toLocaleString()} HH vs avg ${Math.round(stateAvgHH).toLocaleString()}` },

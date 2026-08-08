@@ -5,7 +5,7 @@ const NAV = [
   { id: 'insights', label: 'Insights', icon: BarChart3 },
 ]
 
-export default function Sidebar({ page, onNavigate, collapsed, onToggle }) {
+export default function Sidebar({ page, onNavigate, collapsed, onToggle, activeState, lgaCount }) {
   return (
     <div style={{
       position: 'fixed', top: 0, left: 0, height: '100vh',
@@ -21,7 +21,7 @@ export default function Sidebar({ page, onNavigate, collapsed, onToggle }) {
         {!collapsed && (
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ color: '#fff', fontWeight: 700, fontSize: 13, lineHeight: 1.2 }}>SARMAAN</div>
-            <div style={{ color: '#6db896', fontSize: 10, marginTop: 1 }}>Kano AMR · 44 LGAs</div>
+            <div style={{ color: '#6db896', fontSize: 10, marginTop: 1 }}>{activeState.shortLabel} · {lgaCount} LGAs</div>
           </div>
         )}
         <button
@@ -84,7 +84,7 @@ export default function Sidebar({ page, onNavigate, collapsed, onToggle }) {
       {/* Footer */}
       {!collapsed && (
         <div style={{ padding: '10px 14px', fontSize: 10, color: '#3d7a58' }}>
-          SARMAAN · Kano AMR
+          SARMAAN · {activeState.shortLabel}
         </div>
       )}
     </div>

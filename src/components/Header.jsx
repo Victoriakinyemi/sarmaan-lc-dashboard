@@ -1,14 +1,11 @@
 import { RefreshCw, Wifi, WifiOff, Clock } from 'lucide-react'
 
-export default function Header({ page, fetchedAt, loading, error, onRefresh }) {
+export default function Header({ page, fetchedAt, loading, error, onRefresh, activeState, lgaCount, states, onChangeState }) {
   const titles = {
     overview: 'LGA Coordinator Daily Report',
     insights: 'Insights - Performance & Coverage',
   }
-  const subs = {
-    overview: 'Kano State, Nigeria  ·  44 LGAs  ·  Kano AMR',
-    insights: 'Kano State, Nigeria  ·  44 LGAs  ·  Kano AMR',
-  }
+  const sub = `${activeState.name}, Nigeria  ·  ${lgaCount} LGAs  ·  ${activeState.shortLabel}`
 
   return (
     <header style={{
@@ -26,11 +23,40 @@ export default function Header({ page, fetchedAt, loading, error, onRefresh }) {
           {titles[page]}
         </h1>
         <p style={{ color: '#86c9a8', fontSize: 11, margin: '2px 0 0' }}>
-          {subs[page]}
+          {sub}
         </p>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+        {/* State toggle - only shown once more than one state is configured */}
+        {states.length > 1 && (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 2,
+            background: 'rgba(255,255,255,0.1)',
+            borderRadius: 20, padding: 3,
+          }}>
+            {states.map(s => {
+              const active = s.slug === activeState.slug
+              return (
+                <button
+                  key={s.slug}
+                  onClick={() => onChangeState(s.slug)}
+                  style={{
+                    border: 'none', cursor: 'pointer',
+                    padding: '5px 12px', borderRadius: 16,
+                    fontSize: 11.5, fontWeight: active ? 700 : 500,
+                    background: active ? '#fff' : 'transparent',
+                    color: active ? '#155c3a' : '#c3e8d4',
+                    transition: 'background 0.15s, color 0.15s',
+                  }}
+                >
+                  {s.name}
+                </button>
+              )
+            })}
+          </div>
+        )}
+
         {/* Status pill */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 6,
