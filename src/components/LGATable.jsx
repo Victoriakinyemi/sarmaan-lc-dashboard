@@ -1,11 +1,14 @@
 import { useState } from 'react'
 import { ChevronUp, ChevronDown } from 'lucide-react'
 
-const cols = [
+const BASE_COLS = [
   { key: 'lga',      label: 'LGA',           sortable: true },
   { key: 'n',        label: 'Submissions',    sortable: true, align: 'right' },
   { key: 'days',     label: 'Days active',    sortable: true, align: 'right' },
   { key: 'insidePct',label: 'Inside LGA %',  sortable: true, align: 'center' },
+]
+const WARD_COL = { key: 'insideWardPct', label: 'Inside Ward %', sortable: true, align: 'center' }
+const REST_COLS = [
   { key: 'wards',    label: 'Wards',          sortable: true, align: 'right' },
   { key: 'sett',     label: 'Settlements',    sortable: true, align: 'right' },
   { key: 'hh',       label: 'Households',     sortable: true, align: 'right' },
@@ -15,8 +18,9 @@ const cols = [
   { key: 'security', label: 'Security',       sortable: true, align: 'center' },
 ]
 
-export default function LGATable({ stats }) {
+export default function LGATable({ stats, showWard = false }) {
   const [sort, setSort] = useState({ key: 'lga', dir: 'asc' })
+  const cols = showWard ? [...BASE_COLS, WARD_COL, ...REST_COLS] : [...BASE_COLS, ...REST_COLS]
 
   const toggleSort = (key) => {
     setSort(s => ({ key, dir: s.key === key && s.dir === 'asc' ? 'desc' : 'asc' }))
@@ -26,6 +30,7 @@ export default function LGATable({ stats }) {
     ...s,
     days: s.days.size,
     insidePct: s.n ? Math.round(s.inside / s.n * 100) : 0,
+    insideWardPct: s.wardChecked ? Math.round(s.insideWard / s.wardChecked * 100) : null,
   })).sort((a, b) => {
     const va = a[sort.key], vb = b[sort.key]
     const cmp = typeof va === 'string' ? va.localeCompare(vb) : va - vb
@@ -33,10 +38,12 @@ export default function LGATable({ stats }) {
   })
 
   // Totals
+  const totWardChecked = rows.reduce((a, r) => a + (r.wardChecked || 0), 0)
   const tot = {
     n: rows.reduce((a, r) => a + r.n, 0),
     days: new Set(stats.flatMap(s => [...s.days])).size,
     insidePct: rows.length ? Math.round(rows.reduce((a, r) => a + r.inside, 0) / rows.reduce((a, r) => a + r.n, 0) * 100) : 0,
+    insideWardPct: totWardChecked ? Math.round(rows.reduce((a, r) => a + (r.insideWard || 0), 0) / totWardChecked * 100) : null,
     wards: rows.reduce((a, r) => a + r.wards, 0),
     sett: rows.reduce((a, r) => a + r.sett, 0),
     hh: rows.reduce((a, r) => a + r.hh, 0),
@@ -51,14 +58,27 @@ export default function LGATable({ stats }) {
     return sort.dir === 'asc' ? <ChevronUp size={11} className="inline" /> : <ChevronDown size={11} className="inline" />
   }
 
-  const InsideBadge = ({ pct }) => (
-    <span className={`badge text-xs ${pct >= 60 ? 'badge-green' : 'badge-red'}`}>{pct}%</span>
-  )
+  const InsideBadge = ({ pct }) =>
+    pct === null
+      ? <span className="text-ink-faint text-xs">—</span>
+      : <span className={`badge text-xs ${pct >= 60 ? 'badge-green' : 'badge-red'}`}>{pct}%</span>
 
   const IssueBadge = ({ val, color = 'warn' }) =>
     val > 0
       ? <span className={`badge badge-${color === 'warn' ? 'amber' : 'red'}`}>{val} ⚠</span>
       : <span className="text-ink-faint text-xs">—</span>
+
+  const cell = (r, key, align) => {
+    if (key === 'lga') return <td key={key} className="px-3 py-2 font-semibold text-ink">{r.lga}</td>
+    if (key === 'n') return <td key={key} className="px-3 py-2 text-right font-bold text-ink">{r.n}</td>
+    if (key === 'days') return <td key={key} className="px-3 py-2 text-right text-ink-secondary">{r.days}</td>
+    if (key === 'insidePct') return <td key={key} className="px-3 py-2 text-center"><InsideBadge pct={r.insidePct} /></td>
+    if (key === 'insideWardPct') return <td key={key} className="px-3 py-2 text-center"><InsideBadge pct={r.insideWardPct} /></td>
+    if (key === 'hh') return <td key={key} className="px-3 py-2 text-right text-ink-secondary">{r.hh.toLocaleString()}</td>
+    if (key === 'ch') return <td key={key} className="px-3 py-2 text-center"><IssueBadge val={r.ch} color="warn" /></td>
+    if (key === 'security') return <td key={key} className="px-3 py-2 text-center"><IssueBadge val={r.security} color="red" /></td>
+    return <td key={key} className={`px-3 py-2 text-ink-secondary ${align === 'right' ? 'text-right' : ''}`}>{r[key]}</td>
+  }
 
   return (
     <div className="overflow-auto max-h-[460px]">
@@ -81,17 +101,7 @@ export default function LGATable({ stats }) {
         <tbody>
           {rows.map((r, i) => (
             <tr key={r.lga} className={`border-b border-surface-muted hover:bg-surface-muted transition-colors ${i % 2 === 0 ? '' : 'bg-surface-muted/30'}`}>
-              <td className="px-3 py-2 font-semibold text-ink">{r.lga}</td>
-              <td className="px-3 py-2 text-right font-bold text-ink">{r.n}</td>
-              <td className="px-3 py-2 text-right text-ink-secondary">{r.days}</td>
-              <td className="px-3 py-2 text-center"><InsideBadge pct={r.insidePct} /></td>
-              <td className="px-3 py-2 text-right text-ink-secondary">{r.wards}</td>
-              <td className="px-3 py-2 text-right text-ink-secondary">{r.sett}</td>
-              <td className="px-3 py-2 text-right text-ink-secondary">{r.hh.toLocaleString()}</td>
-              <td className="px-3 py-2 text-right text-ink-secondary">{r.dcs}</td>
-              <td className="px-3 py-2 text-right text-ink-secondary">{r.forms}</td>
-              <td className="px-3 py-2 text-center"><IssueBadge val={r.ch} color="warn" /></td>
-              <td className="px-3 py-2 text-center"><IssueBadge val={r.security} color="red" /></td>
+              {cols.map(({ key, align }) => cell(r, key, align))}
             </tr>
           ))}
         </tbody>
@@ -101,6 +111,7 @@ export default function LGATable({ stats }) {
             <td className="px-3 py-2.5 text-right font-bold text-ink">{tot.n}</td>
             <td className="px-3 py-2.5 text-right font-bold text-ink">{tot.days}</td>
             <td className="px-3 py-2.5 text-center"><InsideBadge pct={tot.insidePct} /></td>
+            {showWard && <td className="px-3 py-2.5 text-center"><InsideBadge pct={tot.insideWardPct} /></td>}
             <td className="px-3 py-2.5 text-right font-bold text-ink">{tot.wards}</td>
             <td className="px-3 py-2.5 text-right font-bold text-ink">{tot.sett}</td>
             <td className="px-3 py-2.5 text-right font-bold text-ink">{tot.hh.toLocaleString()}</td>

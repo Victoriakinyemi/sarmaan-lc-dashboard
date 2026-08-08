@@ -5,7 +5,8 @@ import { applyFilters, buildLGAStats, getYesterday, ACTIVITY_MAP } from '../util
 
 const DEFAULT_FILTERS = {
   dates: null, status: 'all', lga: 'all', coord: 'all',
-  activity: 'all', dateRange: { start: '', end: '' }
+  activity: 'all', dateRange: { start: '', end: '' },
+  ward: 'all', wardStatus: 'all',
 }
 
 function HighlightCard({ title, desc, items, color = 'border-brand-300', emptyMsg }) {

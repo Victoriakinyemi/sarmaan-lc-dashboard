@@ -168,6 +168,12 @@ def clean(row):
     result = str(g(row, "grp_geofence/result"))
     status = "inside" if ("✅" in result or "Inside" in result) else "outside"
 
+    # Ward-level geofence - only asked by Jigawa's form (grp_geofence_ward).
+    # Empty string (not "outside") when the question doesn't exist for this
+    # row at all, so states without ward tracking don't show as 100% outside.
+    ward_result = str(g(row, "grp_geofence_ward/ward_result")).strip()
+    ward_status = ("inside" if ("✅" in ward_result or "Inside" in ward_result) else "outside") if ward_result else ""
+
     activity = str(row.get("grp_authed/activity_type", ""))
     codes = activity.split()
 
@@ -212,6 +218,7 @@ def clean(row):
         "lga":            lga,
         "ward":           ward,
         "status":         status,
+        "ward_status":    ward_status,
         "hours_worked":   hours_worked,
         "survey_type":    survey_type,
         "dist_km":        safe_float(g(row, "grp_geofence/distance_loc_lga")),

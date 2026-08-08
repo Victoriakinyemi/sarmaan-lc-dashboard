@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { SlidersHorizontal, ChevronDown, ChevronUp, X } from 'lucide-react'
-import { getSurveyTypeOptions, surveyTypeLabel } from '../utils/dataUtils'
+import { getSurveyTypeOptions, surveyTypeLabel, hasWardData, getUniqueWards } from '../utils/dataUtils'
 
 function DateDropdown({ dates, selected, onChange }) {
   const [open, setOpen] = useState(false)
@@ -117,6 +117,8 @@ export default function FilterBar({ raw, filters, onChange }) {
   const dates       = [...new Set(raw.map(r => r.date))].sort()
   const lgas        = [...new Set(raw.map(r => r.lga))].sort()
   const surveyTypes = getSurveyTypeOptions(raw)
+  const showWardFilters = hasWardData(raw)
+  const wards       = showWardFilters ? getUniqueWards(raw) : []
 
   const activeCount = [
     filters.dates !== null ? 1 : 0,
@@ -124,11 +126,14 @@ export default function FilterBar({ raw, filters, onChange }) {
     filters.lga !== 'all' ? 1 : 0,
     filters.activity !== 'all' ? 1 : 0,
     filters.dateRange?.start ? 1 : 0,
+    (filters.ward && filters.ward !== 'all') ? 1 : 0,
+    (filters.wardStatus && filters.wardStatus !== 'all') ? 1 : 0,
   ].reduce((a, b) => a + b, 0)
 
   const reset = () => onChange({
     dates: null, status: 'all', lga: 'all', coord: 'all',
-    activity: 'all', dateRange: { start: '', end: '' }
+    activity: 'all', dateRange: { start: '', end: '' },
+    ward: 'all', wardStatus: 'all',
   })
 
   return (
@@ -215,6 +220,33 @@ export default function FilterBar({ raw, filters, onChange }) {
               {lgas.map(l => <option key={l} value={l}>{l}</option>)}
             </select>
           </div>
+
+          {showWardFilters && (
+            <>
+              <div style={{ width: 1, height: 28, background: '#e5e7eb', flexShrink: 0 }} />
+
+              {/* Ward status */}
+              <div style={{ flexShrink: 0 }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: '#9ca3af', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ward status</div>
+                <select value={filters.wardStatus || 'all'} onChange={e => onChange({ ...filters, wardStatus: e.target.value })} style={selStyle}>
+                  <option value="all">All</option>
+                  <option value="inside">Inside Ward</option>
+                  <option value="outside">Outside Ward</option>
+                </select>
+              </div>
+
+              <div style={{ width: 1, height: 28, background: '#e5e7eb', flexShrink: 0 }} />
+
+              {/* Ward */}
+              <div style={{ flexShrink: 0 }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: '#9ca3af', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ward</div>
+                <select value={filters.ward || 'all'} onChange={e => onChange({ ...filters, ward: e.target.value })} style={{ ...selStyle, maxWidth: 120 }}>
+                  <option value="all">All wards</option>
+                  {wards.map(w => <option key={w} value={w}>{w}</option>)}
+                </select>
+              </div>
+            </>
+          )}
 
           <div style={{ width: 1, height: 28, background: '#e5e7eb', flexShrink: 0 }} />
 

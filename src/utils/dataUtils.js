@@ -1,12 +1,14 @@
 // Filter raw data based on active filters
 export function applyFilters(raw, filters) {
-  const { dates, status, lga, activity, dateRange } = filters
+  const { dates, status, lga, ward, wardStatus, activity, dateRange } = filters
   return raw.filter(r => {
     if (dates && dates.size > 0 && !dates.has(r.date)) return false
     if (dateRange?.start && r.date < dateRange.start) return false
     if (dateRange?.end && r.date > dateRange.end) return false
     if (status !== 'all' && r.status !== status) return false
     if (lga !== 'all' && r.lga !== lga) return false
+    if (ward && ward !== 'all' && r.ward !== ward) return false
+    if (wardStatus && wardStatus !== 'all' && r.ward_status !== wardStatus) return false
     // Activity filter sources from survey_type ("Type(s) of activity
     // supported today" - select_multiple, space-separated codes), a
     // different question from activity_type (which still feeds the
@@ -31,6 +33,18 @@ export function surveyTypeLabel(code) {
   return code.toUpperCase()
 }
 
+// True if any row has ward-level geofence data - only Jigawa's form asks
+// this (grp_geofence_ward), so this naturally scopes ward UI/columns to
+// whichever state(s) actually have it, without hardcoding a state name.
+export function hasWardData(raw) {
+  return raw.some(r => r.ward_status === 'inside' || r.ward_status === 'outside')
+}
+
+// Unique ward names present in the data, for the Ward filter dropdown.
+export function getUniqueWards(raw) {
+  return [...new Set(raw.map(r => r.ward).filter(Boolean))].sort()
+}
+
 // Build per-LGA aggregate stats
 export function buildLGAStats(data) {
   const map = {}
@@ -38,6 +52,7 @@ export function buildLGAStats(data) {
     if (!map[r.lga]) map[r.lga] = {
       lga: r.lga, coord: r.coord,
       n: 0, inside: 0,
+      insideWard: 0, wardChecked: 0,
       wards: 0, sett: 0, hh: 0,
       dcs: 0, dcs_partial: 0, dcs_absent: 0, forms: 0,
       ch: 0, critical: 0, device: 0, security: 0,
@@ -47,6 +62,10 @@ export function buildLGAStats(data) {
     const l = map[r.lga]
     l.n++
     if (r.status === 'inside') l.inside++
+    if (r.ward_status === 'inside' || r.ward_status === 'outside') {
+      l.wardChecked++
+      if (r.ward_status === 'inside') l.insideWard++
+    }
     l.wards    += r.wards        || 0
     l.sett     += r.settlements  || 0
     l.hh       += r.hh           || 0
@@ -75,6 +94,8 @@ export function buildTimeSeries(raw, data) {
       total: dayRows.length,
       inside: dayRows.filter(r => r.status === 'inside').length,
       outside: dayRows.filter(r => r.status === 'outside').length,
+      insideWard: dayRows.filter(r => r.ward_status === 'inside').length,
+      outsideWard: dayRows.filter(r => r.ward_status === 'outside').length,
       wards: dayRows.reduce((a, r) => a + (r.wards || 0), 0),
       settlements: dayRows.reduce((a, r) => a + (r.settlements || 0), 0),
       hh: dayRows.reduce((a, r) => a + (r.hh || 0), 0),
@@ -87,6 +108,8 @@ export function buildTimeSeries(raw, data) {
 // Compute summary KPIs
 export function computeKPIs(data) {
   const inside        = data.filter(r => r.status === 'inside').length
+  const wardChecked    = data.filter(r => r.ward_status === 'inside' || r.ward_status === 'outside').length
+  const insideWard     = data.filter(r => r.ward_status === 'inside').length
   const totalDCS      = data.reduce((a, r) => a + (r.dcs || 0), 0)
   const totalPartial  = data.reduce((a, r) => a + (r.dcs_partial || 0), 0)
   const totalAbsent   = data.reduce((a, r) => a + (r.dcs_absent || 0), 0)
@@ -97,6 +120,9 @@ export function computeKPIs(data) {
     activeLGAs:   new Set(data.map(r => r.lga)).size,
     insidePct:    data.length ? Math.round(inside / data.length * 100) : 0,
     inside,
+    wardChecked,
+    insideWard,
+    insideWardPct: wardChecked ? Math.round(insideWard / wardChecked * 100) : 0,
     wards:        data.reduce((a, r) => a + (r.wards || 0), 0),
     settlements:  data.reduce((a, r) => a + (r.settlements || 0), 0),
     hh:           data.reduce((a, r) => a + (r.hh || 0), 0),

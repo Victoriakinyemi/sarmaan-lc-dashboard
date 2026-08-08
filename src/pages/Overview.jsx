@@ -11,17 +11,19 @@ import CoverageChart from '../components/CoverageChart'
 import LGATable      from '../components/LGATable'
 import FilterBar     from '../components/FilterBar'
 import ReportModal   from '../components/ReportModal'
-import { applyFilters, buildLGAStats, buildTimeSeries, computeKPIs } from '../utils/dataUtils'
+import { applyFilters, buildLGAStats, buildTimeSeries, computeKPIs, hasWardData } from '../utils/dataUtils'
 
 const DEFAULT_FILTERS = {
   dates: null, status: 'all', lga: 'all', coord: 'all',
-  activity: 'all', dateRange: { start: '', end: '' }
+  activity: 'all', dateRange: { start: '', end: '' },
+  ward: 'all', wardStatus: 'all',
 }
 
 export default function Overview({ raw, activeState, lgaCount }) {
   const [filters,    setFilters]    = useState(DEFAULT_FILTERS)
   const [showReport, setShowReport] = useState(false)
 
+  const showWard   = useMemo(() => hasWardData(raw), [raw])
   const data       = useMemo(() => applyFilters(raw, filters), [raw, filters])
   const kpis       = useMemo(() => computeKPIs(data), [data])
   const lgaStats   = useMemo(() => buildLGAStats(data), [data])
@@ -60,7 +62,7 @@ export default function Overview({ raw, activeState, lgaCount }) {
         </button>
       </div>
 
-      {/* 7 KPI Cards */}
+      {/* KPI Cards */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(7, 1fr)',
@@ -70,7 +72,11 @@ export default function Overview({ raw, activeState, lgaCount }) {
       }}>
         <KPICard label="Total submissions" desc="Daily reports submitted" value={kpis.total} color="blue" icon={FileBarChart2} delay={0} />
         <KPICard label="Active LGAs" desc="LGAs with at least 1 submission" value={kpis.activeLGAs} color="teal" icon={MapPin} delay={50} />
-        <KPICard label="Inside LGA %" desc={`${kpis.inside} of ${kpis.total} reports`} value={kpis.insidePct} suffix="%" color={kpis.insidePct >= 60 ? 'green' : 'amber'} icon={UserCheck} delay={100} />
+        {showWard ? (
+          <KPICard label="Inside Ward %" desc={`${kpis.insideWard} of ${kpis.wardChecked} checked`} value={kpis.insideWardPct} suffix="%" color={kpis.insideWardPct >= 60 ? 'green' : 'amber'} icon={UserCheck} delay={100} />
+        ) : (
+          <KPICard label="Inside LGA %" desc={`${kpis.inside} of ${kpis.total} reports`} value={kpis.insidePct} suffix="%" color={kpis.insidePct >= 60 ? 'green' : 'amber'} icon={UserCheck} delay={100} />
+        )}
         <KPICard label="Wards covered" desc="Total ward visits" value={kpis.wards} color="blue" icon={Building2} delay={150} />
         <KPICard label="Settlements" desc="Total settlement visits" value={kpis.settlements} color="teal" icon={Home} delay={200} />
         <KPICard label="Challenges flagged" desc="Need follow-up" value={kpis.challenges} color={kpis.challenges > 0 ? 'amber' : 'teal'} icon={AlertTriangle} delay={250} />
@@ -79,8 +85,8 @@ export default function Overview({ raw, activeState, lgaCount }) {
 
       {/* Charts row 1 */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12, width: '100%' }}>
-        <ChartCard title="Daily submissions - inside vs outside LGA" desc="Each bar = one day. Green = inside assigned LGA; red = outside.">
-          <DailyChart timeSeries={timeSeries} />
+        <ChartCard title="Daily submissions - inside vs outside LGA" desc={showWard ? "Each bar = one day. Green = inside assigned LGA; red = outside. Blue line = inside assigned ward." : "Each bar = one day. Green = inside assigned LGA; red = outside."}>
+          <DailyChart timeSeries={timeSeries} showWard={showWard} />
         </ChartCard>
         <ChartCard title="Activity types breakdown" desc="Reports that included each activity. One report can log multiple activities.">
           <ActivityChart data={data} activeFilter={filters.activity} />
@@ -138,7 +144,7 @@ export default function Overview({ raw, activeState, lgaCount }) {
           Per-LGA Summary - A to Z
         </div>
         <div className="card" style={{ overflow: 'hidden' }}>
-          <LGATable stats={[...lgaStats].sort((a, b) => a.lga.localeCompare(b.lga))} />
+          <LGATable stats={[...lgaStats].sort((a, b) => a.lga.localeCompare(b.lga))} showWard={showWard} />
         </div>
       </div>
 
