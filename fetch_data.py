@@ -89,12 +89,41 @@ def g(row, key):
     return row.get(f"grp_authed/{key}", row.get(key, ""))
 
 
+def g2(row, key_a, key_b):
+    """Try two possible field paths and return whichever is non-empty.
+    Some questions (e.g. challenges) were originally only shown for the
+    'dct' activity type (grp_dct/...), then copied into a second group
+    so every activity type can log one too (grp_log/...). A given row
+    only ever has one of the two populated, so trying both covers it."""
+    a = g(row, key_a)
+    if a not in (None, "", "—"):
+        return a
+    return g(row, key_b)
+
+
+def pick_lga_name(row):
+    """auth_lc_lgalabel and auth_lc_lganame hold the display name and the
+    lowercase/underscored slug - but which field is which is NOT
+    consistent across states (Kano: lgalabel='Tsanyawa', lganame='tsanyawa';
+    Jigawa: lgalabel='kiri_kasamma', lganame='Kiri Kasamma' - swapped).
+    Pick whichever value isn't all-lowercase, since every real LGA name is
+    Title Case and every slug is all-lowercase."""
+    a = str(g(row, "auth_lc_lgalabel")).strip()
+    b = str(g(row, "auth_lc_lganame")).strip()
+    if a and a != a.lower():
+        return a
+    if b and b != b.lower():
+        return b
+    return a or b
+
+
 def clean(row):
     date_str = parse_date(row.get("today", ""))
     if not date_str:
         date_str = parse_date(g(row, "grp_exercise/report_date"))
 
-    lga    = str(g(row, "auth_lc_lgalabel")).strip()
+    lga    = pick_lga_name(row)
+    ward   = str(g(row, "auth_lc_wardname") or g(row, "grp_location/active_ward")).strip()
     coord  = str(g(row, "auth_lc_name") or row.get("username", "")).strip()
     result = str(g(row, "grp_geofence/result"))
     status = "inside" if ("✅" in result or "Inside" in result) else "outside"
@@ -102,8 +131,9 @@ def clean(row):
     activity = str(row.get("grp_authed/activity_type", ""))
     codes = activity.split()
 
-    # Challenges: dct_challenges Yes/No
-    challenges = yesno(g(row, "grp_dct/dct_challenges"))
+    # Challenges: dct_challenges Yes/No, or its grp_log/log_challenges copy
+    # for activity types other than 'dct' (see g2 above)
+    challenges = yesno(g2(row, "grp_dct/dct_challenges", "grp_log/log_challenges"))
 
     # Critical: actual question field
     critical = yesno(row.get("grp_authed/grp_dc_roster/critical_issues_any", "no"))
@@ -128,6 +158,7 @@ def clean(row):
         "date":           date_str,
         "coord":          coord,
         "lga":            lga,
+        "ward":           ward,
         "status":         status,
         "dist_km":        safe_float(g(row, "grp_geofence/distance_loc_lga")),
         "outside_reason": outside_reason,
@@ -147,7 +178,7 @@ def clean(row):
         "dcs_absent":     dcs_absent,
         "forms_completed":forms_completed,
         "challenges":     challenges,
-        "challenge_desc": safe_str(g(row, "grp_dct/dct_challenge_desc")),
+        "challenge_desc": safe_str(g2(row, "grp_dct/dct_challenge_desc", "grp_log/log_challenge_desc")),
         "critical":       critical,
         "critical_desc":  safe_str(row.get("grp_authed/grp_dc_roster/critical_issues_desc", "")),
         "device":         device,
@@ -176,11 +207,16 @@ def print_debug(raw):
     if not raw:
         return
     first = raw[0]
-    keyword_keys = sorted(k for k in first.keys()
-                           if any(w in k.lower() for w in ("state", "lga", "ward", "auth", "result")))
-    print("  --- DEBUG: keys matching state/lga/ward/auth/result ---")
+    keywords = ("state", "lga", "ward", "auth", "result", "critical", "device",
+                "security", "challenge", "log", "dct", "summary")
+    keyword_keys = sorted(k for k in first.keys() if any(w in k.lower() for w in keywords))
+    print(f"  --- DEBUG: keys matching {'/'.join(keywords)} ---")
     for k in keyword_keys:
-        print(f"    {k}: {first[k]!r}")
+        val = first[k]
+        # polygon/geo lists are huge and irrelevant here - keep the log readable
+        if isinstance(val, list) and len(val) > 3:
+            val = f"[list of {len(val)} items, omitted]"
+        print(f"    {k}: {val!r}")
     print("  --- END DEBUG ---")
 
 
