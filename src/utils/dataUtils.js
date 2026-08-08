@@ -7,9 +7,28 @@ export function applyFilters(raw, filters) {
     if (dateRange?.end && r.date > dateRange.end) return false
     if (status !== 'all' && r.status !== status) return false
     if (lga !== 'all' && r.lga !== lga) return false
-    if (activity !== 'all' && r[activity] !== 1) return false
+    // Activity filter sources from survey_type ("Type(s) of activity
+    // supported today" - select_multiple, space-separated codes), a
+    // different question from activity_type (which still feeds the
+    // Activity Types Breakdown chart, untouched).
+    if (activity !== 'all' && !(r.survey_type || '').split(' ').includes(activity)) return false
     return true
   })
+}
+
+// Unique survey_type codes actually present in the data, for the Activity
+// filter dropdown. Dynamic rather than a hardcoded map, since the choice
+// list can grow/differ per state.
+export function getSurveyTypeOptions(raw) {
+  const codes = new Set()
+  raw.forEach(r => (r.survey_type || '').split(' ').forEach(c => c && codes.add(c)))
+  return [...codes].sort()
+}
+
+// Best-effort human label for a survey_type code until we have the real
+// choice-list labels - uppercases the raw code (e.g. "amr" -> "AMR").
+export function surveyTypeLabel(code) {
+  return code.toUpperCase()
 }
 
 // Build per-LGA aggregate stats

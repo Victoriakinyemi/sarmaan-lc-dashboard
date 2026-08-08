@@ -43,6 +43,46 @@ def fetch_all_submissions(asset_uid):
     return results
 
 
+def parse_iso_datetime(value, assume_utc_if_naive=False):
+    if not value:
+        return None
+    s = str(value).strip()
+    if not s or s in ("None", "nan"):
+        return None
+    s = s.replace("Z", "+00:00")
+    dt = None
+    try:
+        dt = datetime.fromisoformat(s)
+    except ValueError:
+        try:
+            dt = datetime.fromisoformat(s[:19])
+        except ValueError:
+            return None
+    if dt.tzinfo is None and assume_utc_if_naive:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
+def compute_hours_worked(start_raw, submit_raw):
+    """Hours between when the LC opened the form (system `starttime`, tz-aware)
+    and when it hit the server (`_submission_time`, assumed UTC if no offset
+    given). Returns 0.0 if either timestamp is missing/unparseable, or if the
+    result is negative or implausibly large (>24h) - almost certainly a
+    parsing/timezone mismatch rather than a real work duration."""
+    start  = parse_iso_datetime(start_raw)
+    submit = parse_iso_datetime(submit_raw, assume_utc_if_naive=True)
+    if not start or not submit:
+        return 0.0
+    try:
+        delta = (submit - start).total_seconds() / 3600
+    except TypeError:
+        # one ended up aware and the other naive - fall back to a naive diff
+        delta = (submit.replace(tzinfo=None) - start.replace(tzinfo=None)).total_seconds() / 3600
+    if delta < 0 or delta > 24:
+        return 0.0
+    return round(delta, 2)
+
+
 def parse_date(value):
     if not value or str(value).strip() in ("", "None", "nan"):
         return ""
@@ -131,6 +171,12 @@ def clean(row):
     activity = str(row.get("grp_authed/activity_type", ""))
     codes = activity.split()
 
+    # "Type(s) of activity supported today" (select_multiple survey_types,
+    # field name survey_type) - a separate question from activity_type
+    # above. Feeds the Activity filter dropdown; activity_type above still
+    # feeds the Activity Types Breakdown chart, untouched.
+    survey_type = str(g(row, "survey_type")).strip()
+
     # Challenges: dct_challenges Yes/No, or its grp_log/log_challenges copy
     # for activity types other than 'dct' (see g2 above)
     challenges = yesno(g2(row, "grp_dct/dct_challenges", "grp_log/log_challenges"))
@@ -154,12 +200,20 @@ def clean(row):
     forms_completed = safe_int(g(row, "grp_summary/sum_forms_completed"))
     outside_reason  = safe_str(g(row, "grp_geofence/outside_lga_reason"))
 
+    # Hours worked: system `starttime` (when the LC opened the form) to
+    # `_submission_time` (when it reached the server) - for the monthly
+    # timesheet. Not activity_type's grp_exercise/start_time, which is a
+    # separate, user-entered field.
+    hours_worked = compute_hours_worked(row.get("starttime", ""), row.get("_submission_time", ""))
+
     return {
         "date":           date_str,
         "coord":          coord,
         "lga":            lga,
         "ward":           ward,
         "status":         status,
+        "hours_worked":   hours_worked,
+        "survey_type":    survey_type,
         "dist_km":        safe_float(g(row, "grp_geofence/distance_loc_lga")),
         "outside_reason": outside_reason,
         "training":       1 if "dct"     in codes else 0,
@@ -217,6 +271,14 @@ def print_debug(raw):
         if isinstance(val, list) and len(val) > 3:
             val = f"[list of {len(val)} items, omitted]"
         print(f"    {k}: {val!r}")
+    print("  --- END DEBUG ---")
+
+    # Timesheet hours calc - verify starttime/_submission_time parsing
+    # against a few real rows before trusting the computed hours.
+    print("  --- DEBUG: hours_worked calc (starttime -> _submission_time) ---")
+    for r in raw[:3]:
+        start_raw, submit_raw = r.get("starttime", ""), r.get("_submission_time", "")
+        print(f"    starttime={start_raw!r} _submission_time={submit_raw!r} -> {compute_hours_worked(start_raw, submit_raw)}h")
     print("  --- END DEBUG ---")
 
 

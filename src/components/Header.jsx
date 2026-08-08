@@ -1,4 +1,87 @@
-import { RefreshCw, Wifi, WifiOff, Clock } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { RefreshCw, WifiOff, Clock, ChevronDown, Check } from 'lucide-react'
+
+function StateDropdown({ states, activeState, onChangeState }) {
+  const [open, setOpen] = useState(false)
+  const [panelPos, setPanelPos] = useState({ top: 0, left: 0 })
+  const btnRef = useRef()
+
+  useEffect(() => {
+    const handler = e => {
+      if (btnRef.current && !btnRef.current.closest('[data-state-dd]').contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  const handleOpen = () => {
+    if (!open && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect()
+      setPanelPos({ top: rect.bottom + window.scrollY + 6, left: rect.left + window.scrollX })
+    }
+    setOpen(o => !o)
+  }
+
+  return (
+    <div data-state-dd="true" style={{ position: 'relative' }}>
+      <button
+        ref={btnRef}
+        onClick={handleOpen}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          border: 'none', cursor: 'pointer',
+          padding: '5px 10px', borderRadius: 20,
+          fontSize: 11.5, fontWeight: 600,
+          background: 'rgba(255,255,255,0.12)', color: '#fff',
+        }}
+      >
+        {activeState.name}
+        <ChevronDown size={12} style={{ opacity: 0.8 }} />
+      </button>
+
+      {open && (
+        <div style={{
+          position: 'fixed',
+          top: panelPos.top,
+          left: panelPos.left,
+          minWidth: 180,
+          maxHeight: 280,
+          overflowY: 'auto',
+          background: '#fff',
+          border: '1px solid #e5e7eb',
+          borderRadius: 10,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+          zIndex: 9999,
+          padding: 4,
+        }}>
+          {states.map(s => {
+            const active = s.slug === activeState.slug
+            return (
+              <button
+                key={s.slug}
+                onClick={() => { onChangeState(s.slug); setOpen(false) }}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+                  width: '100%', textAlign: 'left',
+                  padding: '7px 10px', borderRadius: 7,
+                  border: 'none', cursor: 'pointer',
+                  background: active ? '#f0fdf4' : 'transparent',
+                  color: active ? '#155c3a' : '#374151',
+                  fontSize: 12.5, fontWeight: active ? 600 : 500,
+                }}
+                onMouseEnter={e => { if (!active) e.currentTarget.style.background = '#f9fafb' }}
+                onMouseLeave={e => { if (!active) e.currentTarget.style.background = 'transparent' }}
+              >
+                {s.name}
+                {active && <Check size={13} />}
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function Header({ page, fetchedAt, loading, error, onRefresh, activeState, lgaCount, states, onChangeState }) {
   const titles = {
@@ -28,33 +111,9 @@ export default function Header({ page, fetchedAt, loading, error, onRefresh, act
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-        {/* State toggle - only shown once more than one state is configured */}
+        {/* State selector - only shown once more than one state is configured */}
         {states.length > 1 && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 2,
-            background: 'rgba(255,255,255,0.1)',
-            borderRadius: 20, padding: 3,
-          }}>
-            {states.map(s => {
-              const active = s.slug === activeState.slug
-              return (
-                <button
-                  key={s.slug}
-                  onClick={() => onChangeState(s.slug)}
-                  style={{
-                    border: 'none', cursor: 'pointer',
-                    padding: '5px 12px', borderRadius: 16,
-                    fontSize: 11.5, fontWeight: active ? 700 : 500,
-                    background: active ? '#fff' : 'transparent',
-                    color: active ? '#155c3a' : '#c3e8d4',
-                    transition: 'background 0.15s, color 0.15s',
-                  }}
-                >
-                  {s.name}
-                </button>
-              )
-            })}
-          </div>
+          <StateDropdown states={states} activeState={activeState} onChangeState={onChangeState} />
         )}
 
         {/* Status pill */}

@@ -20,7 +20,7 @@ export const STATES = [
   {
     slug: 'jigawa',
     name: 'Jigawa State',
-    shortLabel: 'Jigawa AMR',
+    shortLabel: 'Jigawa Coverage',
     dataFile: 'data-jigawa.json',
     // Only 6 of Jigawa's 27 LGAs are tracked by this survey: Kaugama, Kiri
     // Kasamma, Kiyawa, Miga, Taura, Yankwashi (per coverage_coverage/Jigawa/c_data.csv).

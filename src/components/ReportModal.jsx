@@ -1,13 +1,15 @@
 import { useState } from 'react'
-import { X, Presentation, Loader2 } from 'lucide-react'
+import { X, Presentation, FileText, Clock, Loader2 } from 'lucide-react'
 import { generatePPTXReport } from '../utils/reportUtils'
+import { generateTripReportDocx } from '../utils/tripReportUtils'
+import { generateTimesheetDocx } from '../utils/timesheetUtils'
 
 export default function ReportModal({ raw, data, activeState, lgaCount, onClose }) {
   const [lga,       setLga]       = useState('all')
   const [start,     setStart]     = useState('')
   const [end,       setEnd]       = useState('')
-  const [loading,   setLoading]   = useState(false)
-  const [done,      setDone]      = useState(false)
+  const [loading,   setLoading]   = useState(null) // 'pptx' | 'trip' | 'timesheet'
+  const [done,      setDone]      = useState(null)
 
   const lgas = [...new Set(raw.map(r => r.lga))].sort()
 
@@ -17,16 +19,45 @@ export default function ReportModal({ raw, data, activeState, lgaCount, onClose 
     return true
   })
 
-  const download = async () => {
-    setLoading(true)
-    setDone(false)
+  const downloadPptx = async () => {
+    setLoading('pptx')
+    setDone(null)
     try {
       await generatePPTXReport({ lga, data: filteredData, raw, dateRange: { start, end }, activeState, lgaCount })
-      setDone(true)
+      setDone('pptx')
     } catch (e) {
       console.error(e)
     } finally {
-      setLoading(false)
+      setLoading(null)
+    }
+  }
+
+  const downloadTripReport = async () => {
+    setLoading('trip')
+    setDone(null)
+    try {
+      await generateTripReportDocx({ lga, data: filteredData, raw, dateRange: { start, end }, activeState, lgaCount })
+      setDone('trip')
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(null)
+    }
+  }
+
+  // Defaults to this LGA's own most recent month of real data (see
+  // timesheetUtils.js) unless "From" above is set, which pins the month.
+  const downloadTimesheet = async () => {
+    setLoading('timesheet')
+    setDone(null)
+    try {
+      await generateTimesheetDocx({ lga, data: filteredData, raw, monthStart: start || null, activeState })
+      setDone('timesheet')
+    } catch (e) {
+      console.error(e)
+      alert(e.message)
+    } finally {
+      setLoading(null)
     }
   }
 
@@ -37,7 +68,7 @@ export default function ReportModal({ raw, data, activeState, lgaCount, onClose 
         <div className="flex items-center justify-between px-6 py-4 border-b border-surface-border">
           <div>
             <h2 className="text-sm font-bold text-ink">Download Report</h2>
-            <p className="text-xs text-ink-muted mt-0.5">Generate a PowerPoint report for one LGA or the full state</p>
+            <p className="text-xs text-ink-muted mt-0.5">Generate a PowerPoint, eHA Trip Report, or Monthly Timesheet for one LGA or the full state</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-surface-muted transition-colors">
             <X size={16} className="text-ink-muted" />
@@ -70,8 +101,10 @@ export default function ReportModal({ raw, data, activeState, lgaCount, onClose 
           </div>
 
           {/* Info */}
-          <div className="bg-brand-50 rounded-xl p-3 text-xs text-brand-700 border border-brand-200">
-            <strong>What's included:</strong> A condensed executive slide deck — state snapshot, top/bottom 5 LGAs, {lga !== 'all' ? `${lga} performance rank, coverage & team metrics,` : 'state-wide data-quality flags,'} key issues, and auto-generated recommendations.
+          <div className="bg-brand-50 rounded-xl p-3 text-xs text-brand-700 border border-brand-200 space-y-1.5">
+            <div><strong>PowerPoint:</strong> condensed executive slide deck — state snapshot, top/bottom 5 LGAs, {lga !== 'all' ? `${lga} performance rank, coverage & team metrics,` : 'state-wide data-quality flags,'} key issues, and auto-generated recommendations.</div>
+            <div><strong>eHA Trip Report:</strong> the standard eHA trip-report template (Purpose, Summary, Trip Details, Challenges, Opportunities, Recommended Actions, Photo), with every section written from this scope's real numbers.</div>
+            <div><strong>Monthly Timesheet:</strong> requires a specific LGA (not "All"). Identifies the coordinator by Ward/LGA, not name. Hours per day are computed from form-open time to server-submission time — a proxy, not a verified figure.</div>
           </div>
 
           {/* Preview data summary */}
@@ -87,11 +120,28 @@ export default function ReportModal({ raw, data, activeState, lgaCount, onClose 
             Cancel
           </button>
           <button
-            onClick={download}
-            disabled={loading}
+            onClick={downloadTimesheet}
+            disabled={!!loading || lga === 'all'}
+            title={lga === 'all' ? 'Select a specific LGA to generate a timesheet' : ''}
+            className="btn-secondary text-sm px-4 py-2 flex items-center gap-2"
+          >
+            {loading === 'timesheet' ? <Loader2 size={13} className="animate-spin" /> : <Clock size={13} />}
+            Monthly Timesheet (.docx)
+          </button>
+          <button
+            onClick={downloadTripReport}
+            disabled={!!loading}
+            className="btn-secondary text-sm px-4 py-2 flex items-center gap-2"
+          >
+            {loading === 'trip' ? <Loader2 size={13} className="animate-spin" /> : <FileText size={13} />}
+            eHA Trip Report (.docx)
+          </button>
+          <button
+            onClick={downloadPptx}
+            disabled={!!loading}
             className="btn-primary text-sm px-4 py-2 flex items-center gap-2"
           >
-            {loading ? <Loader2 size={13} className="animate-spin" /> : <Presentation size={13} />}
+            {loading === 'pptx' ? <Loader2 size={13} className="animate-spin" /> : <Presentation size={13} />}
             PowerPoint (.pptx)
           </button>
         </div>
@@ -99,7 +149,7 @@ export default function ReportModal({ raw, data, activeState, lgaCount, onClose 
         {done && (
           <div className="px-6 pb-4">
             <div className="bg-green-50 border border-green-200 rounded-lg px-3 py-2 text-xs text-green-700">
-              ✓ PowerPoint downloaded successfully.
+              ✓ {{ pptx: 'PowerPoint', trip: 'eHA Trip Report', timesheet: 'Monthly Timesheet' }[done]} downloaded successfully.
             </div>
           </div>
         )}

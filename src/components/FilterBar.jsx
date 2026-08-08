@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { SlidersHorizontal, ChevronDown, ChevronUp, X } from 'lucide-react'
-import { ACTIVITY_MAP } from '../utils/dataUtils'
+import { getSurveyTypeOptions, surveyTypeLabel } from '../utils/dataUtils'
 
 function DateDropdown({ dates, selected, onChange }) {
   const [open, setOpen] = useState(false)
@@ -114,8 +114,9 @@ const selStyle = {
 export default function FilterBar({ raw, filters, onChange }) {
   const [open, setOpen] = useState(false)
 
-  const dates = [...new Set(raw.map(r => r.date))].sort()
-  const lgas  = [...new Set(raw.map(r => r.lga))].sort()
+  const dates       = [...new Set(raw.map(r => r.date))].sort()
+  const lgas        = [...new Set(raw.map(r => r.lga))].sort()
+  const surveyTypes = getSurveyTypeOptions(raw)
 
   const activeCount = [
     filters.dates !== null ? 1 : 0,
@@ -222,8 +223,8 @@ export default function FilterBar({ raw, filters, onChange }) {
             <div style={{ fontSize: 10, fontWeight: 600, color: '#9ca3af', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Activity</div>
             <select value={filters.activity} onChange={e => onChange({ ...filters, activity: e.target.value })} style={{ ...selStyle, maxWidth: 150 }}>
               <option value="all">All activities</option>
-              {Object.entries(ACTIVITY_MAP).map(([k, v]) => (
-                <option key={k} value={k}>{v.label}</option>
+              {surveyTypes.map(code => (
+                <option key={code} value={code}>{surveyTypeLabel(code)}</option>
               ))}
             </select>
           </div>
