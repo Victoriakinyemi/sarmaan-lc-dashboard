@@ -31,10 +31,9 @@ export const STATES = [
     name: 'Kaduna State',
     shortLabel: 'Kaduna Coverage',
     dataFile: 'data-kaduna.json',
-    // totalLGAs intentionally omitted - Kaduna has 23 LGAs total, but (like
-    // Jigawa, which tracks only 6 of its 27) this survey likely covers a
-    // subset, not confirmed yet. Falls back to counting active LGAs in the
-    // data until the real tracked-LGA count/list is confirmed.
+    // 6 of Kaduna's 23 LGAs are tracked by this survey (confirmed):
+    // Chikun, Jaba, Jemaa, Kajuru, Soba, Zaria.
+    totalLGAs: 6,
   },
 ]
 
