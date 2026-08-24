@@ -26,6 +26,16 @@ export const STATES = [
     // Kasamma, Kiyawa, Miga, Taura, Yankwashi (per coverage_coverage/Jigawa/c_data.csv).
     totalLGAs: 6,
   },
+  {
+    slug: 'kaduna',
+    name: 'Kaduna State',
+    shortLabel: 'Kaduna Coverage',
+    dataFile: 'data-kaduna.json',
+    // totalLGAs intentionally omitted - Kaduna has 23 LGAs total, but (like
+    // Jigawa, which tracks only 6 of its 27) this survey likely covers a
+    // subset, not confirmed yet. Falls back to counting active LGAs in the
+    // data until the real tracked-LGA count/list is confirmed.
+  },
 ]
 
 export const DEFAULT_STATE = STATES[0]

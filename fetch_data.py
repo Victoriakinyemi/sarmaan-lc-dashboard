@@ -24,6 +24,7 @@ if not TOKEN:
 STATES = [
     {"slug": "kano",   "asset_uid": "akucQN6di4hAxuVEZCku4Z", "output_file": "data.json"},
     {"slug": "jigawa", "asset_uid": "a7qHTwCANtBbdKV4qD8pTa", "output_file": "data-jigawa.json"},
+    {"slug": "kaduna", "asset_uid": "ajUiQQpWdWDZ5uRnBqjwWp", "output_file": "data-kaduna.json"},
 ]
 
 
