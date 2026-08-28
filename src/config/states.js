@@ -35,6 +35,15 @@ export const STATES = [
     // Chikun, Jaba, Jemaa, Kajuru, Soba, Zaria.
     totalLGAs: 6,
   },
+  {
+    slug: 'bauchi',
+    name: 'Bauchi State',
+    shortLabel: 'Bauchi Coverage',
+    dataFile: 'data-bauchi.json',
+    // totalLGAs intentionally omitted - not confirmed yet. Falls back to
+    // counting active LGAs in the data until confirmed (same as Kaduna
+    // before its tracked-LGA count was confirmed).
+  },
 ]
 
 export const DEFAULT_STATE = STATES[0]
