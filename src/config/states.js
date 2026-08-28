@@ -40,9 +40,10 @@ export const STATES = [
     name: 'Bauchi State',
     shortLabel: 'Bauchi Coverage',
     dataFile: 'data-bauchi.json',
-    // totalLGAs intentionally omitted - not confirmed yet. Falls back to
-    // counting active LGAs in the data until confirmed (same as Kaduna
-    // before its tracked-LGA count was confirmed).
+    // 6 LGAs tracked by this survey (confirmed): Darazo, Zaki, Dambam,
+    // Toro, Itas Gadau, Tafawa Balewa. Toro hadn't submitted yet as of
+    // the first real fetch.
+    totalLGAs: 6,
   },
 ]
 
