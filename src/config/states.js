@@ -52,8 +52,10 @@ export const STATES = [
     name: 'Kano State (Coverage)',
     shortLabel: 'Kano Coverage',
     dataFile: 'data-kanocoverage.json',
-    // totalLGAs intentionally omitted - not confirmed yet. Falls back to
-    // counting active LGAs in the data until confirmed.
+    // 6 LGAs tracked by this survey (confirmed): Rano, Garko, Kumbotso,
+    // Rimin Gado, Gwale, Tsanyawa. Garko hadn't submitted yet as of the
+    // first real fetch.
+    totalLGAs: 6,
   },
 ]
 
