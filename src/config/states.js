@@ -11,7 +11,7 @@
 export const STATES = [
   {
     slug: 'kano',
-    name: 'Kano State',
+    name: 'Kano State (AMR)',
     shortLabel: 'Kano AMR',
     dataFile: 'data.json',
     totalLGAs: 44,
@@ -19,7 +19,7 @@ export const STATES = [
   },
   {
     slug: 'jigawa',
-    name: 'Jigawa State',
+    name: 'Jigawa State (Coverage)',
     shortLabel: 'Jigawa Coverage',
     dataFile: 'data-jigawa.json',
     // Only 6 of Jigawa's 27 LGAs are tracked by this survey: Kaugama, Kiri
@@ -28,7 +28,7 @@ export const STATES = [
   },
   {
     slug: 'kaduna',
-    name: 'Kaduna State',
+    name: 'Kaduna State (Coverage)',
     shortLabel: 'Kaduna Coverage',
     dataFile: 'data-kaduna.json',
     // 6 of Kaduna's 23 LGAs are tracked by this survey (confirmed):
@@ -37,7 +37,7 @@ export const STATES = [
   },
   {
     slug: 'bauchi',
-    name: 'Bauchi State',
+    name: 'Bauchi State (Coverage)',
     shortLabel: 'Bauchi Coverage',
     dataFile: 'data-bauchi.json',
     // 6 LGAs tracked by this survey (confirmed): Darazo, Zaki, Dambam,
