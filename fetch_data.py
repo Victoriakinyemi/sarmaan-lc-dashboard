@@ -26,6 +26,10 @@ STATES = [
     {"slug": "jigawa", "asset_uid": "a7qHTwCANtBbdKV4qD8pTa", "output_file": "data-jigawa.json"},
     {"slug": "kaduna", "asset_uid": "ajUiQQpWdWDZ5uRnBqjwWp", "output_file": "data-kaduna.json"},
     {"slug": "bauchi", "asset_uid": "aEUnQ92SFKZetU9Yrt6cX6", "output_file": "data-bauchi.json"},
+    # A separate "Kano Coverage" survey, distinct from the original Kano AMR
+    # asset above - different form/asset, own output file, does not touch
+    # the long-running Kano AMR data.json.
+    {"slug": "kanocoverage", "asset_uid": "a2UpJGWQyP2LdA4nFREgGg", "output_file": "data-kanocoverage.json"},
 ]
 
 

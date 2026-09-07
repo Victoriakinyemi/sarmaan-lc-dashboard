@@ -45,6 +45,16 @@ export const STATES = [
     // the first real fetch.
     totalLGAs: 6,
   },
+  {
+    slug: 'kanocoverage',
+    // Distinguishes from the "Kano State" (AMR) entry above in the state
+    // toggle - same state, separate survey/asset, own data file.
+    name: 'Kano State (Coverage)',
+    shortLabel: 'Kano Coverage',
+    dataFile: 'data-kanocoverage.json',
+    // totalLGAs intentionally omitted - not confirmed yet. Falls back to
+    // counting active LGAs in the data until confirmed.
+  },
 ]
 
 export const DEFAULT_STATE = STATES[0]
