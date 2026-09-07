@@ -135,16 +135,27 @@ def g(row, key):
     return row.get(f"grp_authed/{key}", row.get(key, ""))
 
 
-def g2(row, key_a, key_b):
-    """Try two possible field paths and return whichever is non-empty.
-    Some questions (e.g. challenges) were originally only shown for the
-    'dct' activity type (grp_dct/...), then copied into a second group
-    so every activity type can log one too (grp_log/...). A given row
-    only ever has one of the two populated, so trying both covers it."""
-    a = g(row, key_a)
-    if a not in (None, "", "—"):
-        return a
-    return g(row, key_b)
+def find_by_suffix(row, suffix):
+    """Scan all grp_authed/* fields for one whose last path segment ends
+    with `suffix`, returning the first non-empty match.
+
+    Some questions (e.g. the daily challenges Yes/No) live under a
+    different question group depending on which activity type was
+    selected: grp_dct/dct_challenges for 'dct' (Kano AMR's original),
+    grp_log/log_challenges - a copy applying to every other activity type
+    (Jigawa/Kaduna/Bauchi), and grp_tmg/tmg_challenges for 'tmg' (seen in
+    Kano Coverage) - and there will likely be more per-activity-type group
+    names as the form keeps evolving. A given row only ever has the ONE
+    group matching its actual activity_type populated, so scanning for the
+    suffix instead of hardcoding every group name is both simpler and
+    future-proof against the next new group name."""
+    for key, val in row.items():
+        if not key.startswith("grp_authed/"):
+            continue
+        last_segment = key.rsplit("/", 1)[-1]
+        if last_segment.endswith(suffix) and val not in (None, "", "—"):
+            return val
+    return ""
 
 
 def pick_lga_name(row):
@@ -189,9 +200,9 @@ def clean(row):
     # feeds the Activity Types Breakdown chart, untouched.
     survey_type = str(g(row, "survey_type")).strip()
 
-    # Challenges: dct_challenges Yes/No, or its grp_log/log_challenges copy
-    # for activity types other than 'dct' (see g2 above)
-    challenges = yesno(g2(row, "grp_dct/dct_challenges", "grp_log/log_challenges"))
+    # Challenges: whichever activity-type-specific group has it (see
+    # find_by_suffix above)
+    challenges = yesno(find_by_suffix(row, "_challenges"))
 
     # Critical: actual question field
     critical = yesno(row.get("grp_authed/grp_dc_roster/critical_issues_any", "no"))
@@ -245,7 +256,7 @@ def clean(row):
         "dcs_absent":     dcs_absent,
         "forms_completed":forms_completed,
         "challenges":     challenges,
-        "challenge_desc": safe_str(g2(row, "grp_dct/dct_challenge_desc", "grp_log/log_challenge_desc")),
+        "challenge_desc": safe_str(find_by_suffix(row, "_challenge_desc")),
         "critical":       critical,
         "critical_desc":  safe_str(row.get("grp_authed/grp_dc_roster/critical_issues_desc", "")),
         "device":         device,
