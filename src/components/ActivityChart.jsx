@@ -1,14 +1,10 @@
 import { ACTIVITY_MAP } from '../utils/dataUtils'
 
-export default function ActivityChart({ data, activeFilter }) {
-  const acts = Object.entries(ACTIVITY_MAP).map(([key, { label, color }]) => ({
+export default function ActivityChart({ data }) {
+  const visible = Object.entries(ACTIVITY_MAP).map(([key, { label, color }]) => ({
     key, label, color,
     value: data.reduce((a, r) => a + (r[key] || 0), 0)
   }))
-
-  const visible = activeFilter !== 'all'
-    ? acts.filter(a => a.key === activeFilter)
-    : acts
 
   const max = Math.max(...visible.map(a => a.value), 1)
 

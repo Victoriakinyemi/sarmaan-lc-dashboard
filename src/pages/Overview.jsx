@@ -15,7 +15,7 @@ import { applyFilters, buildLGAStats, buildTimeSeries, computeKPIs, hasWardData 
 
 const DEFAULT_FILTERS = {
   dates: null, status: 'all', lga: 'all', coord: 'all',
-  activity: 'all', dateRange: { start: '', end: '' },
+  dateRange: { start: '', end: '' },
   ward: 'all', wardStatus: 'all',
 }
 
@@ -89,7 +89,7 @@ export default function Overview({ raw, activeState, lgaCount }) {
           <DailyChart timeSeries={timeSeries} showWard={showWard} />
         </ChartCard>
         <ChartCard title="Activity types breakdown" desc="Reports that included each activity. One report can log multiple activities.">
-          <ActivityChart data={data} activeFilter={filters.activity} />
+          <ActivityChart data={data} />
         </ChartCard>
       </div>
 

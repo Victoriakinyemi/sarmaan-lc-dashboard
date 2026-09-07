@@ -1,6 +1,6 @@
 // Filter raw data based on active filters
 export function applyFilters(raw, filters) {
-  const { dates, status, lga, ward, wardStatus, activity, dateRange } = filters
+  const { dates, status, lga, ward, wardStatus, dateRange } = filters
   return raw.filter(r => {
     if (dates && dates.size > 0 && !dates.has(r.date)) return false
     if (dateRange?.start && r.date < dateRange.start) return false
@@ -9,28 +9,8 @@ export function applyFilters(raw, filters) {
     if (lga !== 'all' && r.lga !== lga) return false
     if (ward && ward !== 'all' && r.ward !== ward) return false
     if (wardStatus && wardStatus !== 'all' && r.ward_status !== wardStatus) return false
-    // Activity filter sources from survey_type ("Type(s) of activity
-    // supported today" - select_multiple, space-separated codes), a
-    // different question from activity_type (which still feeds the
-    // Activity Types Breakdown chart, untouched).
-    if (activity !== 'all' && !(r.survey_type || '').split(' ').includes(activity)) return false
     return true
   })
-}
-
-// Unique survey_type codes actually present in the data, for the Activity
-// filter dropdown. Dynamic rather than a hardcoded map, since the choice
-// list can grow/differ per state.
-export function getSurveyTypeOptions(raw) {
-  const codes = new Set()
-  raw.forEach(r => (r.survey_type || '').split(' ').forEach(c => c && codes.add(c)))
-  return [...codes].sort()
-}
-
-// Best-effort human label for a survey_type code until we have the real
-// choice-list labels - uppercases the raw code (e.g. "amr" -> "AMR").
-export function surveyTypeLabel(code) {
-  return code.toUpperCase()
 }
 
 // True if any row has ward-level geofence data - only Jigawa's form asks

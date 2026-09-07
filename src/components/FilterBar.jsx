@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { SlidersHorizontal, ChevronDown, ChevronUp, X } from 'lucide-react'
-import { getSurveyTypeOptions, surveyTypeLabel, hasWardData, getUniqueWards } from '../utils/dataUtils'
+import { hasWardData, getUniqueWards } from '../utils/dataUtils'
 
 function DateDropdown({ dates, selected, onChange }) {
   const [open, setOpen] = useState(false)
@@ -116,7 +116,6 @@ export default function FilterBar({ raw, filters, onChange }) {
 
   const dates       = [...new Set(raw.map(r => r.date))].sort()
   const lgas        = [...new Set(raw.map(r => r.lga))].sort()
-  const surveyTypes = getSurveyTypeOptions(raw)
   const showWardFilters = hasWardData(raw)
   const wards       = showWardFilters ? getUniqueWards(raw) : []
 
@@ -124,7 +123,6 @@ export default function FilterBar({ raw, filters, onChange }) {
     filters.dates !== null ? 1 : 0,
     filters.status !== 'all' ? 1 : 0,
     filters.lga !== 'all' ? 1 : 0,
-    filters.activity !== 'all' ? 1 : 0,
     filters.dateRange?.start ? 1 : 0,
     (filters.ward && filters.ward !== 'all') ? 1 : 0,
     (filters.wardStatus && filters.wardStatus !== 'all') ? 1 : 0,
@@ -132,7 +130,7 @@ export default function FilterBar({ raw, filters, onChange }) {
 
   const reset = () => onChange({
     dates: null, status: 'all', lga: 'all', coord: 'all',
-    activity: 'all', dateRange: { start: '', end: '' },
+    dateRange: { start: '', end: '' },
     ward: 'all', wardStatus: 'all',
   })
 
@@ -247,19 +245,6 @@ export default function FilterBar({ raw, filters, onChange }) {
               </div>
             </>
           )}
-
-          <div style={{ width: 1, height: 28, background: '#e5e7eb', flexShrink: 0 }} />
-
-          {/* Activity */}
-          <div style={{ flexShrink: 0 }}>
-            <div style={{ fontSize: 10, fontWeight: 600, color: '#9ca3af', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Activity</div>
-            <select value={filters.activity} onChange={e => onChange({ ...filters, activity: e.target.value })} style={{ ...selStyle, maxWidth: 150 }}>
-              <option value="all">All activities</option>
-              {surveyTypes.map(code => (
-                <option key={code} value={code}>{surveyTypeLabel(code)}</option>
-              ))}
-            </select>
-          </div>
         </div>
       )}
     </div>
