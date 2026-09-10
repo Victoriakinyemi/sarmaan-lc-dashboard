@@ -20,7 +20,10 @@ if not TOKEN:
     sys.exit(1)
 
 # slug is only used for logging; output_file is what actually matters -
-# it must match a state's `dataFile` in src/config/states.js.
+# it must match a state's `dataFile` in src/config/states.js (each is
+# written into DATA_DIR below, e.g. dataFile 'data/data.json').
+DATA_DIR = "data"
+
 STATES = [
     {"slug": "kano",   "asset_uid": "akucQN6di4hAxuVEZCku4Z", "output_file": "data.json"},
     {"slug": "jigawa", "asset_uid": "a7qHTwCANtBbdKV4qD8pTa", "output_file": "data-jigawa.json"},
@@ -340,10 +343,12 @@ def process_state(cfg):
         "rows":       valid,
     }
 
-    with open(output_file, "w", encoding="utf-8") as f:
+    os.makedirs(DATA_DIR, exist_ok=True)
+    output_path = os.path.join(DATA_DIR, output_file)
+    with open(output_path, "w", encoding="utf-8") as f:
         json.dump(output, f, ensure_ascii=False, separators=(",", ":"))
 
-    print(f"[{slug}]   Written {len(valid)} rows to {output_file}")
+    print(f"[{slug}]   Written {len(valid)} rows to {output_path}")
 
 
 def main():

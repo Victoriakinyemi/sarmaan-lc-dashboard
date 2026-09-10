@@ -4,10 +4,10 @@ Live dashboard for the Kano AMR project — auto-refreshes hourly from KoboToolb
 
 ## How it works
 
-1. **`fetch-data.yml`** (GitHub Action, hourly) pulls all submissions from KoboToolbox using the `KOBO_TOKEN` secret and commits the result to `data.json` at the repo root.
-2. **`deploy.yml`** (GitHub Action, on push to `main` / hourly at :10 / manual) installs deps, copies the latest `data.json` into `public/`, runs `npm run build`, and deploys `dist/` to GitHub Pages.
-   - It's on its own hourly schedule (not just `push`) because commits made with the default `GITHUB_TOKEN` — which is what `fetch-data.yml` pushes with — don't trigger other workflows' `push` events. Without the schedule, the fetch would keep updating `data.json` in the repo but the deployed site would never pick it up.
-3. The deployed app fetches its own `data.json` at runtime (`src/hooks/useData.js`) and re-polls every 10 minutes client-side, so an open browser tab picks up a new deploy without a manual reload.
+1. **`fetch-data.yml`** (GitHub Action, hourly) pulls all submissions from KoboToolbox using the `KOBO_TOKEN` secret and commits the result to `data/data.json` (and each other state's file under `data/`).
+2. **`deploy.yml`** (GitHub Action, on push to `main` / hourly at :10 / manual) installs deps, copies the latest files from `data/` into `public/data/`, runs `npm run build`, and deploys `dist/` to GitHub Pages.
+   - It's on its own hourly schedule (not just `push`) because commits made with the default `GITHUB_TOKEN` — which is what `fetch-data.yml` pushes with — don't trigger other workflows' `push` events. Without the schedule, the fetch would keep updating `data/` in the repo but the deployed site would never pick it up.
+3. The deployed app fetches its own `data/data.json` at runtime (`src/hooks/useData.js`) and re-polls every 10 minutes client-side, so an open browser tab picks up a new deploy without a manual reload.
 
 ## Local development
 
@@ -16,18 +16,18 @@ npm install
 npm run dev
 ```
 
-Vite serves at `http://localhost:5173/sarmaan-lc-dashboard/` (the `base` in `vite.config.js` matches the GitHub Pages path). `public/data.json` is a local-only snapshot for dev — Vite needs *something* there to serve, but it's gitignored so it never gets committed (avoids tracking the same data twice, since root `data.json` is the real source). If you want current numbers locally:
+Vite serves at `http://localhost:5173/sarmaan-lc-dashboard/` (the `base` in `vite.config.js` matches the GitHub Pages path). `public/data/` is a local-only snapshot for dev — Vite needs *something* there to serve, but it's gitignored so it never gets committed (avoids tracking the same data twice, since `data/` at the repo root is the real source). If you want current numbers locally:
 
 ```bash
-cp data.json public/data.json   # macOS/Linux
-copy data.json public\data.json # Windows
+mkdir -p public/data && cp data/*.json public/data/           # macOS/Linux
+if not exist public\data mkdir public\data & xcopy data\*.json public\data\ /Y  # Windows
 ```
 
 ## Setup on a fresh repo (already done for this one)
 
 1. Repo → **Settings → Secrets and variables → Actions** → add `KOBO_TOKEN` (your KoboToolbox API token).
 2. Repo → **Settings → Pages → Source** → **GitHub Actions** (not "Deploy from a branch" — the React build needs `deploy.yml` to run).
-3. Push to `main`. `deploy.yml` builds and publishes automatically; `fetch-data.yml` keeps `data.json` current.
+3. Push to `main`. `deploy.yml` builds and publishes automatically; `fetch-data.yml` keeps `data/` current.
 
 ## Changing the refresh frequency
 
@@ -49,9 +49,9 @@ copy data.json public\data.json # Windows
 ```
 index.html              # Vite entry point
 src/                     # React app (pages, components, hooks, utils)
-public/data.json         # dev-time data snapshot; overwritten at build time from root data.json
-data.json                # live data, refreshed hourly by fetch-data.yml
-fetch_data.py            # KoboToolbox → data.json
+public/data/             # dev-time data snapshot; overwritten at build time from root data/
+data/                    # live per-state data files, refreshed hourly by fetch-data.yml
+fetch_data.py            # KoboToolbox → data/*.json
 .github/workflows/
   fetch-data.yml          # hourly data fetch
   deploy.yml               # build + deploy to GitHub Pages

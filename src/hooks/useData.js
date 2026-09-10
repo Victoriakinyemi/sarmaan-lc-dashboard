@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 
 const BASE = import.meta.env.BASE_URL
 
-export function useData(dataFile = 'data.json') {
+export function useData(dataFile = 'data/data.json') {
   const [raw, setRaw]             = useState([])
   const [fetchedAt, setFetchedAt] = useState('')
   const [loading, setLoading]     = useState(true)
