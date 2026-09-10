@@ -37,9 +37,8 @@ jobs:
 
       - name: Copy latest data files into public
         run: |
-          mkdir -p public
-          cp data.json public/data.json
-          cp data-*.json public/ 2>/dev/null || true
+          mkdir -p public/data
+          cp data/*.json public/data/
 
       - name: Build
         run: npm run build
