@@ -47,6 +47,15 @@ export const STATES = [
     totalLGAs: 6,
   },
   {
+    slug: 'zamfara',
+    name: 'Zamfara State (Coverage)',
+    shortLabel: 'Zamfara Coverage',
+    dataFile: 'data/data-zamfara.json',
+    // 6 LGAs tracked by this survey (confirmed): Anka, Bakura, Bungudu,
+    // Gusau, Kaura Namoda, Shinkafi.
+    totalLGAs: 6,
+  },
+  {
     slug: 'kanocoverage',
     // Distinguishes from the "Kano State" (AMR) entry above in the state
     // toggle - same state, separate survey/asset, own data file.
